@@ -41,7 +41,7 @@ export const Hero = () => {
             <div className="flex items-center gap-8 pt-8">
               <div className="flex items-center gap-2">
                 <Shield className="w-5 h-5 text-success" />
-                <span className="text-sm font-medium">85% Cost Reduction</span>
+                <span className="text-sm font-medium">45% Cost Reduction</span>
               </div>
               <div className="flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-success" />

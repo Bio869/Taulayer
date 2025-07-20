@@ -66,7 +66,7 @@ export const Solution = () => {
           <div className="flex flex-wrap justify-center gap-4 mb-12">
             <Badge variant="secondary" className="px-4 py-2 text-sm">
               <TrendingUp className="w-4 h-4 mr-2" />
-              85% Cost Reduction
+              45% Cost Reduction
             </Badge>
             <Badge variant="secondary" className="px-4 py-2 text-sm">
               <Zap className="w-4 h-4 mr-2" />
@@ -108,7 +108,7 @@ export const Solution = () => {
               <ul className="space-y-3">
                 <li className="flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 text-success mt-0.5" />
-                  <span className="text-sm text-muted-foreground">Reduce compute and data access costs by up to 85%</span>
+                  <span className="text-sm text-muted-foreground">Reduce compute and data access costs by up to 45%</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 text-success mt-0.5" />

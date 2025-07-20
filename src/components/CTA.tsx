@@ -23,7 +23,7 @@ export const CTA = () => {
           </h2>
           
           <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-            Join forward-thinking SaaS teams who've eliminated AI latency, reduced costs by 85%, and transformed user trust in their AI features.
+            Join forward-thinking SaaS teams who've eliminated AI latency, reduced costs by 45%, and transformed user trust in their AI features.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
@@ -56,7 +56,7 @@ export const CTA = () => {
         {/* Stats */}
         <div className="grid md:grid-cols-3 gap-8 mt-16 text-center">
           <div className="animate-slide-up">
-            <div className="text-3xl font-bold text-white mb-2">85%</div>
+            <div className="text-3xl font-bold text-white mb-2">45%</div>
             <div className="text-white/80">Cost Reduction</div>
           </div>
           <div className="animate-slide-up" style={{animationDelay: '200ms'}}>
