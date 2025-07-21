@@ -18,15 +18,15 @@ export const Hero = () => {
                 Velocity Layer for Modern CX Workflows
               </div>
               <h1 className="text-4xl md:text-6xl font-bold text-foreground leading-tight">
-                Velocity Layer
+                Fast UX & Agent-Triggered
                 <br /> for AI
-                <span className="bg-gradient-primary bg-clip-text text-transparent"> Workflows.</span>
-                {/*<br />
-                Cut Infra Cost Boost
-                <span className="bg-gradient-accent bg-clip-text text-transparent"> Satisfaction</span>*/}
+                <span className="bg-gradient-primary bg-clip-text text-transparent"> Workflow Control —</span>
+                <br />
+                Cut Latency, Lower Costs, Protect Infrastructure
+                {/*<span className="bg-gradient-accent bg-clip-text text-transparent"> Satisfaction</span>*/}
               </h1>
               <p className="text-xl text-muted-foreground max-w-lg">
-                An intelligent API layer that predicts, optimizes, and governs backend operations triggered by LLMs—ensuring responsiveness and efficiency before they impact users or infrastructure.
+                τLayer evaluates every LLM-triggered request—guiding improvements and preventing high-cost, high-latency operations before they affect users or systems.
               </p>
             </div>
             
