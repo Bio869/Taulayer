@@ -19,7 +19,7 @@ export const Navigation = () => {
           {/* Logo */}
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">U+03C4</span>
+              <span className="text-white font-bold text-sm">τ</span>
             </div>
             <span className="font-bold text-foreground text-xl">Layer</span>
           </div>
