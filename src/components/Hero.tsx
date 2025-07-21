@@ -26,7 +26,7 @@ export const Hero = () => {
                 <span className="bg-gradient-accent bg-clip-text text-transparent"> Satisfaction</span>*/}
               </h1>
               <p className="text-xl text-muted-foreground max-w-lg">
-                Intelligent API layer that predicts, optimizes, and controls LLM-triggered backend operations before they impact your users or infrastructure.
+                An intelligent API layer that predicts, optimizes, and governs backend operations triggered by LLMs—ensuring responsiveness and efficiency before they impact users or infrastructure.
               </p>
             </div>
             
