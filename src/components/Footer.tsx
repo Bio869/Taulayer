@@ -15,9 +15,9 @@ export const Footer = () => {
           <div className="md:col-span-2">
             <div className="flex items-center space-x-2 mb-4">
               <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">AI</span>
+                <span className="text-white font-bold text-sm">&#x03A4;</span>
               </div>
-              <span className="font-bold text-foreground text-xl">GenAI Experience Layer</span>
+              <span className="font-bold text-foreground text-xl">Layer</span>
             </div>
             <p className="text-muted-foreground text-sm max-w-md mb-6">
               Intelligent API layer that gives SaaS companies complete visibility and control over LLM-triggered backend operations.

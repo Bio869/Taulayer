@@ -18,7 +18,7 @@ export const Hero = () => {
                 Velocity Layer for Modern CX Workflows
               </div>
               <h1 className="text-4xl md:text-6xl font-bold text-foreground leading-tight">
-                Accelerate CX for Modern AI
+                Velocity Layer for AI
                 <span className="bg-gradient-primary bg-clip-text text-transparent"> Workflows.</span>
                 {/*<br />
                 Cut Infra Cost Boost
