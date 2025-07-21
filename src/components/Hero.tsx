@@ -25,7 +25,7 @@ export const Hero = () => {
                 {/*<span className="bg-gradient-accent bg-clip-text text-transparent"> Satisfaction</span>*/}
               </h1>
               <p className="text-xl text-muted-foreground max-w-lg">
-                τLayer evaluates every LLM-triggered request—guiding improvements and preventing high-cost, high-latency operations before they affect users or systems.
+                AI-triggered requests are evaluated instantly to prevent latency spikes, reduce cost, and accelerate execution—across UX and agent workflows.
               </p>
             </div>
             
