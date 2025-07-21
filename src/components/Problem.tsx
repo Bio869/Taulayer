@@ -34,7 +34,7 @@ export const Problem = () => {
       <div className="container px-4 mx-auto">
         <div className="text-center mb-16 animate-fade-in">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
-            LLMs Blind to Request Complexity and Infra Limits—Causing Latency and Cost Spikes
+            LLMs Blind to Request Complexity and Infra Limits—<br />Causing Latency and Cost Spikes
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Modern SaaS platforms embed LLM agents to drive user interactions—but these agents execute backend workflows with zero awareness of infrastructure cost, latency, or user impact.
