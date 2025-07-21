@@ -18,10 +18,10 @@ export const Hero = () => {
                 Modern AI Workflow Layer — Speed, Savings, Stability
               </div>
               <h1 className="text-4xl md:text-6xl font-bold text-foreground leading-tight">
-                Accelerate AI-Triggered
-                <span className="bg-gradient-primary bg-clip-text text-transparent"> Workflows —</span>
+                Faster AI
+                <span className="bg-gradient-primary bg-clip-text text-transparent"> Workflows—</span>
                 <br />
-                Cut Latency, Lower Costs, Protect Infra
+                Slash Latency, Reduce Costs, Ease Infra Load
                 {/*<span className="bg-gradient-accent bg-clip-text text-transparent"> Satisfaction</span>*/}
               </h1>
               <p className="text-xl text-muted-foreground max-w-lg">
