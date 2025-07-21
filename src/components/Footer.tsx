@@ -15,7 +15,7 @@ export const Footer = () => {
           <div className="md:col-span-2">
             <div className="flex items-center space-x-2 mb-4">
               <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">τ</span>
+                <span className="text-white font-bold text-sm">&#964;</span>
               </div>
               <span className="font-bold text-foreground text-xl">Layer</span>
             </div>
