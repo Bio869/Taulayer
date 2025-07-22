@@ -57,12 +57,12 @@ export const Solution = () => {
             Smart Solution
           </div>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
-            Pre-Execution Intelligence & Real-Time Engagement
+            Execution Intelligence for AI Workloads
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-            A lightweight API layer that gives your LLM agents complete visibility and control over backend operations.
+            A lightweight control layer that analyzes AI-triggered requests in real time—surfacing latency, cost, and system load, and optimizing execution paths for users and agents based on real-time insights.
           </p>
-          
+
           <div className="flex flex-wrap justify-center gap-4 mb-12">
             <Badge variant="secondary" className="px-4 py-2 text-sm">
               <TrendingUp className="w-4 h-4 mr-2" />
@@ -81,8 +81,14 @@ export const Solution = () => {
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
           {valueProps.map((prop, index) => (
-            <Card key={index} className="p-6 border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-xl group animate-slide-up bg-background/50 backdrop-blur-sm" style={{animationDelay: `${index * 100}ms`}}>
-              <div className={`w-12 h-12 ${prop.bg} rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
+            <Card
+              key={index}
+              className="p-6 border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-xl group animate-slide-up bg-background/50 backdrop-blur-sm"
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
+              <div
+                className={`w-12 h-12 ${prop.bg} rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}
+              >
                 <prop.icon className={`w-6 h-6 ${prop.color}`} />
               </div>
               <h3 className="font-semibold text-foreground mb-3">{prop.title}</h3>
@@ -98,44 +104,44 @@ export const Solution = () => {
               Transform your AI features from unpredictable cost centers into efficient, user-friendly experiences
             </p>
           </div>
-          
+
           <div className="grid md:grid-cols-2 gap-8">
-            <div>
-              <h4 className="text-lg font-semibold text-foreground mb-4 flex items-center">
+            <div className="mx-auto md:mx-0 md:text-left text-center">
+              <h4 className="text-lg font-semibold text-foreground mb-4 flex items-center justify-center md:justify-start">
                 <TrendingUp className="w-5 h-5 text-success mr-2" />
                 For Your Business
               </h4>
               <ul className="space-y-3">
-                <li className="flex items-start gap-3">
+                <li className="flex items-start gap-3 justify-center md:justify-start">
                   <CheckCircle className="w-5 h-5 text-success mt-0.5" />
                   <span className="text-sm text-muted-foreground">Reduce compute and data access costs by up to 45%</span>
                 </li>
-                <li className="flex items-start gap-3">
+                <li className="flex items-start gap-3 justify-center md:justify-start">
                   <CheckCircle className="w-5 h-5 text-success mt-0.5" />
                   <span className="text-sm text-muted-foreground">Prevent backend overloads and system timeouts</span>
                 </li>
-                <li className="flex items-start gap-3">
+                <li className="flex items-start gap-3 justify-center md:justify-start">
                   <CheckCircle className="w-5 h-5 text-success mt-0.5" />
                   <span className="text-sm text-muted-foreground">Clear ROI on foundation model integration</span>
                 </li>
               </ul>
             </div>
-            
-            <div>
-              <h4 className="text-lg font-semibold text-foreground mb-4 flex items-center">
+
+            <div className="mx-auto md:mx-0 md:text-left text-center">
+              <h4 className="text-lg font-semibold text-foreground mb-4 flex items-center justify-center md:justify-start">
                 <Users className="w-5 h-5 text-primary mr-2" />
                 For Your Users
               </h4>
               <ul className="space-y-3">
-                <li className="flex items-start gap-3">
+                <li className="flex items-start gap-3 justify-center md:justify-start">
                   <CheckCircle className="w-5 h-5 text-success mt-0.5" />
                   <span className="text-sm text-muted-foreground">Faster, smarter, more scoped AI responses</span>
                 </li>
-                <li className="flex items-start gap-3">
+                <li className="flex items-start gap-3 justify-center md:justify-start">
                   <CheckCircle className="w-5 h-5 text-success mt-0.5" />
                   <span className="text-sm text-muted-foreground">Transparent latency expectations and progress</span>
                 </li>
-                <li className="flex items-start gap-3">
+                <li className="flex items-start gap-3 justify-center md:justify-start">
                   <CheckCircle className="w-5 h-5 text-success mt-0.5" />
                   <span className="text-sm text-muted-foreground">Proactive guidance before costly mistakes happen</span>
                 </li>
