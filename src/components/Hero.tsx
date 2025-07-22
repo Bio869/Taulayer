@@ -25,7 +25,7 @@ export const Hero = () => {
                 {/*<span className="bg-gradient-accent bg-clip-text text-transparent"> Satisfaction</span>*/}
               </h1>
               <p className="text-xl text-muted-foreground max-w-lg">
-                AI-triggered requests are evaluated instantly to prevent latency spikes, reduce cost, and accelerate execution—across UX and agent workflows.
+                Intelligent request handling for AI workflows—reduce latency, lower costs, and prevent backend overloads.
               </p>
             </div>
             
