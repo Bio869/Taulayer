@@ -105,7 +105,7 @@ export const Solution = () => {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-2 gap-y-10 gap-x-12 items-start">
             <div className="mx-auto md:mx-0 md:text-left text-center">
               <h4 className="text-lg font-semibold text-foreground mb-4 flex items-center justify-center md:justify-start">
                 <TrendingUp className="w-5 h-5 text-success mr-2" />
