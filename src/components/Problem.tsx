@@ -37,7 +37,7 @@ export const Problem = () => {
             LLMs Blind to Task Complexity and Infra Limits—<br />Latency and Costs Spike
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Modern SaaS platforms embed LLM agents to drive user interactions—but these agents execute backend workflows with zero awareness of infrastructure cost, latency, or user impact.
+            Modern architecture—including SaaS UX and agent-based automation—relies on LLM and GenAI agents to drive tasks—But these agents operate blindly—triggering backend workflows without visibility into system load, latency, or cost—leading to delays, inefficiencies, and infrastructure risk.
           </p>
         </div>
 
