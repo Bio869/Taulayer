@@ -30,7 +30,7 @@ export const CTA = () => {
             <Button size="lg" className="bg-white text-primary hover:bg-white/90 hover:scale-105 transition-all duration-300 shadow-xl">
               Start Free Trial <ArrowRight className="ml-2 w-4 h-4" />
             </Button>
-            <Button variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-primary hover:border-white">
+            <Button size="lg" className="bg-white text-primary hover:bg-white/90 hover:scale-105 transition-all duration-300 shadow-xl">
               <Mail className="mr-2 w-4 h-4" />
               Book Demo
             </Button>

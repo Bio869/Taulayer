@@ -1,4 +1,4 @@
-import { Code, ArrowRight, CheckCircle, AlertTriangle, HelpCircle } from "lucide-react";
+import { Code, ArrowRight, CheckCircle, HelpCircle, BrainCircuit} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -123,20 +123,20 @@ export const HowItWorks = () => {
           <div className="grid md:grid-cols-3 gap-6">
             <Card className="p-6 text-center border-2 border-success/30 bg-success/5">
               <CheckCircle className="w-12 h-12 text-success mx-auto mb-4" />
-              <h4 className="font-semibold text-foreground mb-2">✅ Safe to Execute</h4>
-              <p className="text-sm text-muted-foreground">Query is optimized and ready to run</p>
+              <h4 className="font-semibold text-foreground mb-2">🟢 Safe to Execute</h4>
+              <p className="text-sm text-muted-foreground">Request is optimized and ready to run</p>
             </Card>
             
             <Card className="p-6 text-center border-2 border-warning/30 bg-warning/5">
-              <AlertTriangle className="w-12 h-12 text-warning mx-auto mb-4" />
-              <h4 className="font-semibold text-foreground mb-2">⚠️ Suggest Improvements</h4>
-              <p className="text-sm text-muted-foreground">Recommend filters, limits, or scheduling</p>
+              <BrainCircuit className="w-12 h-12 text-warning mx-auto mb-4" />
+              <h4 className="font-semibold text-foreground mb-2">🧊 Smart Enhancer</h4>
+              <p className="text-sm text-muted-foreground">Recommend limits, filters or scheduling</p>
             </Card>
             
             <Card className="p-6 text-center border-2 border-primary/30 bg-primary/5">
               <HelpCircle className="w-12 h-12 text-primary mx-auto mb-4" />
-              <h4 className="font-semibold text-foreground mb-2">❓ Ask Clarification</h4>
-              <p className="text-sm text-muted-foreground">Guide users to more specific queries</p>
+              <h4 className="font-semibold text-foreground mb-2">✔️ Clarify Intent</h4>
+              <p className="text-sm text-muted-foreground">Help users and AI agents query efficiently</p>
             </Card>
           </div>
         </div>

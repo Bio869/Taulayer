@@ -109,9 +109,9 @@ export const Solution = () => {
           </div>
 
           {/* Centered two-column layout */}
-          <div className="flex flex-col md:flex-row justify-center items-start gap-y-10 gap-x-12 max-w-5xl mx-auto">
+          <div className="flex flex-col md:flex-row justify-center items-start gap-y-10 gap-x-[8rem] mx-auto">
             {/* Business Column */}
-            <div className="md:w-1/2 text-left">
+            <div className="text-left w-auto">
               <h4 className="text-lg font-semibold text-foreground mb-4 flex items-center md:justify-start justify-center">
                 <TrendingUp className="w-5 h-5 text-success mr-2" />
                 For Your Business
@@ -119,21 +119,27 @@ export const Solution = () => {
               <ul className="space-y-3">
                 <li className="flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 text-success mt-0.5" />
-                  <span className="text-sm text-muted-foreground">Reduce compute and data access costs by up to 45%</span>
+                  <span className="text-sm text-muted-foreground">
+                    Reduce compute and data access costs by up to 45%
+                  </span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 text-success mt-0.5" />
-                  <span className="text-sm text-muted-foreground">Prevent backend overloads and system timeouts</span>
+                  <span className="text-sm text-muted-foreground">
+                    Prevent backend overloads and system timeouts
+                  </span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 text-success mt-0.5" />
-                  <span className="text-sm text-muted-foreground">Clear ROI on foundation model integration</span>
+                  <span className="text-sm text-muted-foreground">
+                    Clear ROI on foundation model integration
+                  </span>
                 </li>
               </ul>
             </div>
 
             {/* Users Column */}
-            <div className="md:w-1/2 text-left">
+            <div className="text-left w-auto">
               <h4 className="text-lg font-semibold text-foreground mb-4 flex items-center md:justify-start justify-center">
                 <Users className="w-5 h-5 text-primary mr-2" />
                 For Your Users
@@ -141,15 +147,21 @@ export const Solution = () => {
               <ul className="space-y-3">
                 <li className="flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 text-success mt-0.5" />
-                  <span className="text-sm text-muted-foreground">Faster, smarter, more scoped AI responses</span>
+                  <span className="text-sm text-muted-foreground">
+                    Faster, smarter, more scoped AI responses
+                  </span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 text-success mt-0.5" />
-                  <span className="text-sm text-muted-foreground">Transparent latency expectations and progress</span>
+                  <span className="text-sm text-muted-foreground">
+                    Transparent latency expectations and progress
+                  </span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 text-success mt-0.5" />
-                  <span className="text-sm text-muted-foreground">Proactive guidance before costly mistakes happen</span>
+                  <span className="text-sm text-muted-foreground">
+                    Proactive guidance before costly mistakes happen
+                  </span>
                 </li>
               </ul>
             </div>
