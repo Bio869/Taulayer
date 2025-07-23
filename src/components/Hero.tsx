@@ -23,7 +23,7 @@ export const Hero = () => {
                 {/*<span className="bg-gradient-accent bg-clip-text text-transparent"> Satisfaction</span>*/}
               </h1>
               <p className="text-xl text-muted-foreground max-w-lg">
-                Intelligent request handling for AI workflows—reduce latency, lower costs, and prevent backend overloads.
+                AI requests often carry high execution costs, latency, and infra load—we reveal and optimize them before triggering backend load.
               </p>
             </div>
             
