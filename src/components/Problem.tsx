@@ -34,10 +34,10 @@ export const Problem = () => {
       <div className="container px-4 mx-auto">
         <div className="text-center mb-16 animate-fade-in">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
-            AI Execution Blind to Complexity and Infra Limits—<br />Latency and Costs Spike
+            AI Execution is Blind to Complexity and Infra Limits
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Modern SaaS platforms and agent workflows rely on LLMs and GenAI to handle tasks — but blind to system load, latency, and cost — leading to delays and infrastructure strain.
+            Modern AI workflows often initiate tasks without assessing downstream impact—overlooking signals like complexity, data scope, execution depth, and workload intensity. This leads to high latency, unexpected cost spikes, infrastructure strain, and major performance and scalability inefficiencies.
           </p>
         </div>
 
