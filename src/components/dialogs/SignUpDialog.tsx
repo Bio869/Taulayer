@@ -53,28 +53,41 @@ export const SignUpDialog = ({ open, onOpenChange, title = "Get Started with Opt
   });
 
   const onSubmit = async (data: SignUpFormData) => {
-    setIsLoading(true);
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast({
-        title: "Welcome to OptimizeAI!",
-        description: "Your signup has been submitted successfully. We'll be in touch soon!",
-      });
-      
-      onOpenChange(false);
-      form.reset();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Something went wrong. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+  setIsLoading(true);
+  try {
+    // This fetch call sends the form data to the API route you just created
+    const response = await fetch('/api/signup', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to submit the form. Please try again.');
     }
-  };
+    
+    // Your existing success logic
+    toast({
+      title: "Welcome to OptimizeAI!",
+      description: "Your signup has been submitted successfully. We'll be in touch soon!",
+    });
+    
+    onOpenChange(false);
+    form.reset();
+
+  } catch (error) {
+    console.error(error); 
+    toast({
+      title: "Error",
+      description: error instanceof Error ? error.message : "Something went wrong.",
+      variant: "destructive",
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
