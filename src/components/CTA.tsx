@@ -23,7 +23,7 @@ export const CTA = () => {
           </h2>
           
           <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-            Join forward-thinking SaaS teams who've eliminated AI latency, reduced costs by 45%, and transformed user trust in their AI features.
+            Join forward-thinking teams who've eliminated AI latency, reduced costs by 45%, and transformed user trust in their AI features.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">

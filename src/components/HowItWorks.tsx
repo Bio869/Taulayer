@@ -75,7 +75,7 @@ export const HowItWorks = () => {
             Simple API Integration
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Lightweight, stateless API calls that embed seamlessly into your existing LLM workflow
+            Lightweight, stateless API calls that embed seamlessly into your existing workflows
           </p>
         </div>
 

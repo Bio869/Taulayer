@@ -64,7 +64,7 @@ export const Features = () => {
             Complete AI Optimization Suite
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Everything you need to transform your LLM-powered features into efficient, cost-effective, and user-friendly experiences
+            Everything you need to transform your AI-powered features into efficient, cost-effective, and user-friendly experiences
           </p>
         </div>
 
