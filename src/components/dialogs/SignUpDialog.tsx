@@ -56,7 +56,7 @@ export const SignUpDialog = ({ open, onOpenChange, title = "Get Started with Opt
   setIsLoading(true);
   try {
     // This fetch call sends the form data to the API route you just created
-    const response = await fetch('/api/signup', {
+    const response = await fetch('http://localhost:3001/send', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
