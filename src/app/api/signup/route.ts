@@ -11,7 +11,7 @@ export async function POST(request: Request) {
 
     const { data, error } = await resend.emails.send({
       from: 'OptimizeAI Signup <info@taulayer.com>', // Use an address from your verified domain
-      to: ['info@taulayer.com'], // The email address you want to receive submissions
+      to: ['pinipur@gmail.com'], // The email address you want to receive submissions
       subject: 'New Signup for OptimizeAI!',
       html: `
         <h1>New Signup Submission</h1>
