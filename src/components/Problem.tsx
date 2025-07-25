@@ -34,7 +34,7 @@ export const Problem = () => {
       <div className="container px-4 mx-auto">
         <div className="text-center mb-16 animate-fade-in">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
-            AI Execution is Blind Downstream Impact
+            AI Execution is Blind to Downstream Impact
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             AI workflows often launch tasks without accounting for backend and infrastructure load—overlooking complexity, data size, and execution depth. The result: latency, cost spikes, infrastructure bottlenecks, and poor scalability.
