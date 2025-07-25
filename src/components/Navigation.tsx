@@ -1,9 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
+import { SignInDialog } from "@/components/dialogs/SignInDialog";
+import { SignUpDialog } from "@/components/dialogs/SignUpDialog";
 
 export const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [signInOpen, setSignInOpen] = useState(false);
+  const [signUpOpen, setSignUpOpen] = useState(false);
 
   const navigation = [
     { name: "Problem", href: "#problem" },
@@ -39,10 +43,17 @@ export const Navigation = () => {
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center space-x-4">
-            <Button variant="outline" className="border-primary/30 hover:border-primary">
+            <Button 
+              variant="outline" 
+              className="border-primary/30 hover:border-primary"
+              onClick={() => setSignInOpen(true)}
+            >
               Sign In
             </Button>
-            <Button className="bg-gradient-primary hover:shadow-lg hover:scale-105 transition-all duration-300">
+            <Button 
+              className="bg-gradient-primary hover:shadow-lg hover:scale-105 transition-all duration-300"
+              onClick={() => setSignUpOpen(true)}
+            >
               Get Started
             </Button>
           </div>
@@ -75,10 +86,23 @@ export const Navigation = () => {
                 </a>
               ))}
               <div className="flex flex-col space-y-2 px-3 pt-4">
-                <Button variant="outline" className="border-primary/30 hover:border-primary">
+                <Button 
+                  variant="outline" 
+                  className="border-primary/30 hover:border-primary"
+                  onClick={() => {
+                    setSignInOpen(true);
+                    setIsOpen(false);
+                  }}
+                >
                   Sign In
                 </Button>
-                <Button className="bg-gradient-primary">
+                <Button 
+                  className="bg-gradient-primary"
+                  onClick={() => {
+                    setSignUpOpen(true);
+                    setIsOpen(false);
+                  }}
+                >
                   Get Started
                 </Button>
               </div>
@@ -86,6 +110,8 @@ export const Navigation = () => {
           </div>
         )}
       </div>
+      <SignInDialog open={signInOpen} onOpenChange={setSignInOpen} />
+      <SignUpDialog open={signUpOpen} onOpenChange={setSignUpOpen} />
     </nav>
   );
 };

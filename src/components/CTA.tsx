@@ -1,7 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Rocket, Mail } from "lucide-react";
+import { useState } from "react";
+import { SignUpDialog } from "@/components/dialogs/SignUpDialog";
 
 export const CTA = () => {
+  const [signUpOpen, setSignUpOpen] = useState(false);
+  const [dialogTitle, setDialogTitle] = useState("");
   return (
     <section className="py-20 bg-gradient-primary relative overflow-hidden">
       {/* Background decorations */}
@@ -19,7 +23,7 @@ export const CTA = () => {
           <h2 className="text-3xl md:text-5xl font-bold text-white mb-6 leading-tight">
             Stop Flying Blind with
             <br />
-            LLM Operations
+            LLM Operations 
           </h2>
           
           <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
@@ -27,12 +31,26 @@ export const CTA = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Button size="lg" className="bg-white text-primary hover:bg-white/90 hover:scale-105 transition-all duration-300 shadow-xl">
-              Start Free Trial <ArrowRight className="ml-2 w-4 h-4" />
+            <Button 
+              size="lg" 
+              className="bg-white text-primary hover:bg-white/90 hover:scale-105 transition-all duration-300 shadow-xl"
+              onClick={() => {
+                setDialogTitle("Start Your Free Trial");
+                setSignUpOpen(true);
+              }}
+            >
+            Start Free Trial <ArrowRight className="ml-2 w-4 h-4" />
             </Button>
-            <Button size="lg" className="bg-white text-primary hover:bg-white/90 hover:scale-105 transition-all duration-300 shadow-xl">
-              <Mail className="mr-2 w-4 h-4" />
-              Book Demo
+
+            <Button 
+              size="lg" 
+              className="bg-white text-primary hover:bg-white/90 hover:scale-105 transition-all duration-300 shadow-xl"
+              onClick={() => {
+                setDialogTitle("Book Your Demo");
+                setSignUpOpen(true);
+              }}
+            >
+            Book Demo <Mail className="mr-2 w-4 h-4" />
             </Button>
           </div>
           
@@ -69,6 +87,11 @@ export const CTA = () => {
           </div>
         </div>
       </div>
+      <SignUpDialog 
+        open={signUpOpen} 
+        onOpenChange={setSignUpOpen} 
+        title={dialogTitle}
+      />
     </section>
   );
 };

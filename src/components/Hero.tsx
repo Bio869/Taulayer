@@ -1,7 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Zap, Shield, TrendingUp } from "lucide-react";
+import { useState } from "react";
+import { SignUpDialog } from "@/components/dialogs/SignUpDialog";
 
 export const Hero = () => {
+  const [signUpOpen, setSignUpOpen] = useState(false);
+  const [dialogTitle, setDialogTitle] = useState("");
   return (
     <section className="pt-24 md:pt-32 relative min-h-screen flex items-center justify-center bg-gradient-secondary overflow-hidden">
       {/* Background decoration */}
@@ -28,10 +32,25 @@ export const Hero = () => {
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button size="lg" className="bg-gradient-primary hover:shadow-lg hover:scale-105 transition-all duration-300">
+              <Button 
+                size="lg" 
+                className="bg-gradient-primary hover:shadow-lg hover:scale-105 transition-all duration-300"
+                onClick={() => {
+                  setDialogTitle("Get Started with OptimizeAI");
+                  setSignUpOpen(true);
+                }}
+              >
                 Get Started <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
-              <Button variant="outline" size="lg" className="border-primary/30 hover:border-primary">
+               <Button 
+                variant="outline" 
+                size="lg" 
+                className="border-primary/30 hover:border-primary"
+                onClick={() => {
+                  setDialogTitle("View Demo - Get Started");
+                  setSignUpOpen(true);
+                }}
+              >
                 View Demo
               </Button>
             </div>
@@ -61,6 +80,11 @@ export const Hero = () => {
           </div>
         </div>
       </div>
+      <SignUpDialog 
+        open={signUpOpen} 
+        onOpenChange={setSignUpOpen} 
+        title={dialogTitle}
+      />
     </section>
   );
 };
