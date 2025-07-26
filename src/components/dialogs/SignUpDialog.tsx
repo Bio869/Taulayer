@@ -37,7 +37,7 @@ interface SignUpDialogProps {
   title?: string;
 }
 
-export const SignUpDialog = ({ open, onOpenChange, title = "Get Started with OptimizeAI" }: SignUpDialogProps) => {
+export const SignUpDialog = ({ open, onOpenChange, title = "Get Started with τLayer" }: SignUpDialogProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -68,7 +68,7 @@ export const SignUpDialog = ({ open, onOpenChange, title = "Get Started with Opt
     
     // Your existing success logic
     toast({
-      title: "Welcome to OptimizeAI!",
+      title: "Welcome to τLayer!",
       description: "Your signup has been submitted successfully. We'll be in touch soon!",
     });
     
@@ -162,7 +162,7 @@ export const SignUpDialog = ({ open, onOpenChange, title = "Get Started with Opt
                   <FormLabel>Use Case</FormLabel>
                   <FormControl>
                     <Textarea 
-                      placeholder="Tell us how you plan to use OptimizeAI (optional)"
+                      placeholder="Tell us how you plan to use τLayer (optional)"
                       className="min-h-[100px]"
                       {...field} 
                     />

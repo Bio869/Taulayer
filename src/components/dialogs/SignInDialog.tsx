@@ -127,7 +127,7 @@ export const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-center text-2xl font-bold">
-            {isForgotPassword ? "Reset Your Password" : "Sign In to OptimizeAI"}
+            {isForgotPassword ? "Reset Your Password" : "Sign In to τLayer"}
           </DialogTitle>
         </DialogHeader>
         

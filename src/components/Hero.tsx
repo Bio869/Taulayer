@@ -36,7 +36,7 @@ export const Hero = () => {
                 size="lg" 
                 className="bg-gradient-primary hover:shadow-lg hover:scale-105 transition-all duration-300"
                 onClick={() => {
-                  setDialogTitle("Get Started with OptimizeAI");
+                  setDialogTitle("Get Started with τLayer");
                   setSignUpOpen(true);
                 }}
               >

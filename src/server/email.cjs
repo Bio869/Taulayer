@@ -17,7 +17,7 @@ app.post('/send', async (req, res) => {
     const { error } = await resend.emails.send({
       from: 'OptimizeAI <onboarding@resend.dev>',
       to: ['pinipur@gmail.com'],
-      subject: 'New Signup for OptimizeAI!',
+      subject: 'New Signup for τLayer!',
       html: `
         <h2>🚀 New Signup Received</h2>
         <p><strong>Full Name:</strong> ${fullName}</p>
@@ -26,7 +26,7 @@ app.post('/send', async (req, res) => {
         <p><strong>Role:</strong> ${role || 'N/A'}</p>
         <p><strong>Use Case:</strong> ${useCase || 'N/A'}</p>
         <hr />
-        <p>Sent automatically via Resend API from the OptimizeAI site.</p>
+        <p>Sent automatically via Resend API from the τLayer site.</p>
       `,
     });
 
