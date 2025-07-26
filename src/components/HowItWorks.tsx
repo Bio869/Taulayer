@@ -4,33 +4,59 @@ import { Badge } from "@/components/ui/badge";
 
 export const HowItWorks = () => {
   const apiEndpoints = [
-    {
-      name: "Predict API",
-      method: "POST",
-      endpoint: "/api/predict",
-      description: "Analyze query before execution",
-      code: `{
-  "query": "Summarize churned users from last 3 months",
+  {
+    name: "Predict API",
+    method: "POST",
+    endpoint: "/api/predict",
+    description: "Analyze query before execution",
+    code: `{
+  "query": "Summarize churned users with high lifetime value",
+  "user_id": "my2dog5is",
+  "client_id": "acme_corp",
   "context": {
-    "user_tier": "premium",
-    "time_of_day": "peak_hours"
+    "channel": "agentic AI",
+    "urgency": "high",
+    "file_attached": true,
+    "file_metadata": {
+      "type": "tabular",
+      "size_mb": 8.3,
+       "description": [
+        "Tabular file with structured records and mixed data types",
+        "High column count (40 fields)",
+        "Estimated row volume 500K",
+        "Multiple date/time fields"
+      ]
+    }
   }
 }`
+  },
+  {
+    name: "Response",
+    method: "200",
+    endpoint: "Success",
+    description: "Intelligent guidance",
+    code: `{
+  "status": "query_optimization_available",
+  "analysis": {
+    "token_estimate": {
+      "level": "high", "value": 12450
     },
-    {
-      name: "Response",
-      method: "200",
-      endpoint: "Success",
-      description: "Intelligent guidance",
-      code: `{
-  "status": "suggest_improvement",
-  "predicted_latency": "12s",
-  "estimated_cost": "$0.45",
-  "suggestion": "Add date filter to reduce scan",
-  "alternative": "Schedule report for off-peak"
-}`
+    "latency": {
+      "level": "medium", "predicted": "12s"
+    },
+    "execution_complexity": {
+      "level": "medium",
+      "reason": "2 joins","No filters applied", ...
     }
-  ];
+  },
+  "suggestions": [
+    "Apply date_range=<last_90_days> to reduce data scanned",
+    "Limit SELECT fields to: churn_status, lifetime_value, date_joined",
+    "Auto-schedule execution to 1:00am–4:00am off-peak window"
+  ]
+}`
+  }
+];
 
   const flowSteps = [
     {
