@@ -19,7 +19,7 @@ export const Hero = () => {
             <div className="space-y-4">
               <div className="inline-flex items-center px-4 py-2 bg-primary/10 rounded-full text-sm font-medium text-primary">
                 <Zap className="w-4 h-4 mr-2" />
-                Modern AI Workflow Layer — Speed, Savings, Stability
+                Smarter AI Workflows — Perform. Save. Scale
               </div>
               <h1 className="text-4xl md:text-6xl font-bold text-foreground leading-tight">
                 Pre-Execution AI Readiness That Cuts

@@ -21,8 +21,8 @@ import { useState, useEffect } from "react";
 export const HowItWorks = () => {
   const apiExamples = [
     {
-      title: "General Query Analysis",
-      description: "Standard business intelligence request",
+      title: "Agent-Initiated Request",
+      description: "Optimizing queries triggered by agent workflows",
       request: {
         name: "Predict API",
         method: "POST",
@@ -79,19 +79,28 @@ export const HowItWorks = () => {
       }
     },
     {
-      title: "AI Agent Query Analysis",
-      description: "Autonomous agent optimization request",
+      title: "User Prompt Optimization",
+      description: "Optimizing queries entered through UI workflows",
       request: {
         name: "Predict API",
         method: "POST",
         endpoint: "/api/predict",
         description: "AI agent query pre-analysis",
         code: `{
-  "query": "SELECT * FROM events WHERE user_sentiment < 0.3 AND created_at > NOW() - INTERVAL '7 days'",
+  "query": "Show all transactions flagged as suspicious",
+  "user_id": "johndoe_123",
+  "client_id": "fintrack_inc",
   "context": {
-    "source": "ai_agent",
-    "agent_id": "sentiment_analyzer",
-    "priority": "high"
+    "channel": "User Prompt",
+    "request_timestamp": "2025-11-20T14:22:10Z",
+    "request_priority": "high",
+    "device_type": "desktop",
+    "session_id": "sess_4932adc8",
+    "file_attached": false,
+    "file_metadata": {
+      "type": null,
+      "size_mb": 0,
+      "description": []
   }
 }`
       },
@@ -101,11 +110,21 @@ export const HowItWorks = () => {
         endpoint: "Success",
         description: "Optimized execution plan",
         code: `{
-  "status": "safe_to_execute",
-  "predicted_latency": "2.3s",
-  "estimated_cost": "$0.08",
-  "optimization": "Index on user_sentiment applied",
-  "agent_recommendation": "proceed_with_execution"
+  "status": "query_review_recommended",
+  "analysis": {
+    "token_estimate": { "level": "medium", "value": 7400 },
+    "latency": { "level": "high", "predicted": "21s" },
+    "execution_complexity": {
+      "level": "high",
+      "reason": "No filters, 3 joins, large dataset scanned."
+    }
+  },
+  "suggestions": [
+  "[Info] Query scope is broad —",
+  "[Suggest] Limit to the last 30 days.",
+  "[Suggest] Apply region filter: SF, US.",
+  "[Suggest] Filter by unusual amount."
+]
 }`
       }
     }
@@ -115,29 +134,29 @@ export const HowItWorks = () => {
     {
       step: 1,
       icon: ArrowRight,
-      title: "User Query",
-      description: "User submits natural language request to LLM or AI agent",
+      title: "Request Input (UI or Backend Trigger)",
+      description: "A user or agent initiates a request from your app or workload",
       status: "neutral"
     },
     {
       step: 2,
       icon: Code,
-      title: "Pre-Analysis",
-      description: "Our API analyzes query complexity and resource requirements",
+      title: "Pre-Execution Evaluation (τLayer)",
+      description: "Evaluated for complexity, latency, and cost —executes if viable, else returns guidance",
       status: "processing"
     },
     {
       step: 3,
       icon: CheckCircle,
-      title: "Smart Decision",
-      description: "Return guidance: execute, optimize, or clarify",
+      title: "Execution (Deployed in Your Stack)",
+      description: "Runs on your AI stack, outside τLayer",
       status: "success"
     },
     {
       step: 4,
       icon: ArrowRight,
-      title: "Execution",
-      description: "Proceed with optimized query or user engagement",
+      title: " Post-Execution Feedback (τLayer)",
+      description: "Execution metrics (latency, token usage, peak hours) are logged to improve prediction and guidance",
       status: "neutral"
     }
   ];
@@ -170,9 +189,9 @@ export const HowItWorks = () => {
             <Code className="w-4 h-4 mr-2" />
             How It Works
           </div>
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">Simple API Integration</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">Pre-Execution Request Orchestration & Optimization</h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Lightweight, stateless API calls that embed seamlessly into your existing workflows
+            A lightweight, stateless API that seamlessly integrates into your existing workflows—guiding and optimizing requests to reduce latency, control costs, and prevent infrastructure strain before execution
           </p>
         </div>
 
@@ -197,8 +216,8 @@ export const HowItWorks = () => {
 
         {/* API Examples Carousel */}
         <div className="w-full px-4">
-          <h3 className="text-2xl font-bold text-foreground text-center mb-8">API Examples</h3>
-          <Carousel className="w-full" setApi={setCarouselApi}>
+          <h3 className="text-2xl font-bold text-foreground text-center mb-8">API Workflow Scenarios (UI & Agent)</h3>
+          <Carousel className="w-full" setApi={setCarouselApi} opts={{ watchDrag: false, dragFree: false }}>
             <CarouselContent>
               {apiExamples.map((example, index) => (
                 <CarouselItem key={index} className="w-full">

@@ -59,10 +59,10 @@ export const Solution = () => {
             Smart Solution
           </div>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
-            Execution Intelligence for AI Workloads
+            Pre-Execution Request Optimization for Smarter AI Workflows
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-            A lightweight control layer that analyzes AI-triggered requests in real time—surfacing latency, cost, and system load, and optimizing execution paths for users and agents based on real-time insights.
+            A lightweight layer that evaluates prompt- or backend-triggered requests in real time—surfacing latency, cost, and system load insights to guide smarter execution.
           </p>
           <div className="flex flex-wrap justify-center gap-4 mb-12">
             <Badge variant="secondary" className="px-4 py-2 text-sm">
