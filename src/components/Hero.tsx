@@ -27,7 +27,7 @@ export const Hero = () => {
                 {/*<span className="bg-gradient-accent bg-clip-text text-transparent"> Satisfaction</span>*/}
               </h1>
               <p className="text-xl text-muted-foreground max-w-lg">
-                AI-driven requests often trigger high-cost, high-latency workloads—τLayer reveals and mitigates system load before execution.
+                Prompt- and backend-triggered requests often lead to high-cost, high-latency workloads—τLayer reveals and mitigates system load before execution.
               </p>
             </div>
             
