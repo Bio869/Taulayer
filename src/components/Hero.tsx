@@ -69,12 +69,6 @@ export const Hero = () => {
           
           <div className="relative animate-slide-up delay-300">
             <div className="relative z-10">
-              {/*<img 
-                src="/lovable-uploads/746a4af5-865d-4f31-a98b-36ac96f16bd5.png" 
-                alt="AI Communication Intelligence" 
-                className="w-full max-w-md mx-auto rounded-2xl shadow-2xl"
-                style={{ filter: 'drop-shadow(0 20px 40px rgba(139, 92, 246, 0.3))' }}
-              />*/}
             <div
             className="relative w-full aspect-[16/9] transition-all duration-300 hover:shadow-[0_25px_35px_rgba(100,80,206,0.35)] rounded-2xl"
             style={{ filter: 'drop-shadow(0 10px 10px rgba(139, 92, 246, 1))' }}
