@@ -74,7 +74,7 @@ export const Hero = () => {
             style={{ filter: 'drop-shadow(0 10px 10px rgba(139, 92, 246, 1))' }}
             >
               <video 
-                src="/lovable-uploads/Presentation1.mp4"
+                src="/taulayer/lovable-uploads/Presentation1.mp4"
                 autoPlay 
                 loop 
                 muted
