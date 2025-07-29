@@ -13,7 +13,7 @@ export const Hero = () => {
       <div className="absolute top-20 left-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl animate-pulse" />
       <div className="absolute bottom-20 right-10 w-96 h-96 bg-accent/10 rounded-full blur-3xl animate-pulse delay-1000" />
       
-      <div className="container px-4 mx-auto relative z-10">
+      <div className="container px-4 mx-auto relative z-10 pb-24 md:pb-0">
         <div className="grid lg:grid-cols-[1fr_1.2fr] gap-12 items-center">
           <div className="space-y-8 animate-fade-in">
             <div className="space-y-4">
