@@ -7,7 +7,7 @@ export const Hero = () => {
   const [signUpOpen, setSignUpOpen] = useState(false);
   const [dialogTitle, setDialogTitle] = useState("");
   return (
-    <section className="pt-12 md:pt-20 relative min-h-screen flex items-center justify-center bg-gradient-secondary overflow-hidden">
+    <section className="pt-24 md:pt-32 relative min-h-screen flex items-center justify-center bg-gradient-secondary overflow-hidden">
       {/* Background decoration */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/10" />
       <div className="absolute top-20 left-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl animate-pulse" />
