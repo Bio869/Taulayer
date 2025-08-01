@@ -104,7 +104,7 @@ export const Solution = () => {
           <div className="text-center mb-8">
             <h3 className="text-2xl font-bold text-foreground mb-4">Complete Value Proposition</h3>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Transform your AI features from unpredictable cost centers into efficient, user-friendly experiences
+              Transform your AI features from unpredictable cost centers <br />into efficient, user-friendly experiences
             </p>
           </div>
 
@@ -132,7 +132,7 @@ export const Solution = () => {
                 <li className="flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 text-success mt-0.5" />
                   <span className="text-sm text-muted-foreground">
-                    Clear ROI on foundation model integration
+                    Unlock query-level visibility into model spend and performance
                   </span>
                 </li>
               </ul>
@@ -160,7 +160,7 @@ export const Solution = () => {
                 <li className="flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 text-success mt-0.5" />
                   <span className="text-sm text-muted-foreground">
-                    Proactive guidance before costly mistakes happen
+                    Proactive guidance—designed for responsive experiences
                   </span>
                 </li>
               </ul>

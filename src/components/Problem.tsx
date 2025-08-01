@@ -6,25 +6,25 @@ export const Problem = () => {
     {
       icon: Clock,
       title: "Zero Latency Awareness",
-      description: "LLM agents generate queries without knowing if they'll take 300ms or 15 seconds",
+      description: "Prompts trigger LLMs and AI systems—unaware if the task takes 300ms or 15s.",
       color: "text-warning"
     },
     {
       icon: DollarSign,
       title: "No Cost Estimation",
-      description: "No visibility into API costs, compute time, or database load before execution",
+      description: "No visibility into token usage, compute demand, or task cost before execution.",
       color: "text-destructive"
     },
     {
       icon: Database,
       title: "Backend Overloads",
-      description: "Runaway queries risk overwhelming your infrastructure during peak hours",
+      description: "Runaway queries risk overwhelming your infrastructure during peak hours.",
       color: "text-warning"
     },
     {
       icon: Users,
       title: "Poor User Experience",
-      description: "Long wait times and unclear progress lead to user frustration and mistrust",
+      description: "Long wait times and unclear progress lead to user frustration and mistrust.",
       color: "text-destructive"
     }
   ];
