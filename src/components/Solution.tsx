@@ -62,7 +62,7 @@ export const Solution = () => {
             System-Aware Execution Starts Here
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-            A stateless API built for scale that evaluates prompt- and backend-initiated requests in real time—revealing latency, cost, and system load to guide smarter execution paths.
+            τLayer is an intelligent orchestration layer that brings system-awareness to AI/ML execution. By analyzing every request before it runs, it helps platforms reduce waste, improve responsiveness, and make smarter decisions across dynamic workloads.
           </p>
           <div className="flex flex-wrap justify-center gap-4 mb-12">
             <Badge variant="secondary" className="px-4 py-2 text-sm">
