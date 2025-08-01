@@ -37,7 +37,7 @@ export const Problem = () => {
             AI Execution is Blind to Downstream Impact
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Prompt- or AI-driven workflows often launch tasks without accounting for backend and infrastructure load—overlooking complexity, data size, and execution depth. The result: latency, cost spikes, infrastructure bottlenecks, and poor scalability.
+            Prompt- or AI‑initiated workflows often launch tasks without assessing backend and infrastructure load—overlooking complexity, data size, and execution depth. The result: latency, cost spikes, infrastructure bottlenecks, and poor scalability.
           </p>
         </div>
 

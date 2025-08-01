@@ -191,7 +191,7 @@ export const HowItWorks = () => {
           </div>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">Pre-Execution Request Orchestration & Optimization</h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            A lightweight, stateless API that seamlessly integrates into your existing workflows—guiding and optimizing requests to reduce latency, control costs, and prevent infrastructure strain before execution
+            τLayer analyzes each request via a real-time POST API call (&lt;50ms)—evaluating complexity, latency, and cost before execution. If thresholds are met, it proceeds; if not, τLayer returns suggestions or clarification prompts. Execution metrics are logged to improve future predictions.
           </p>
         </div>
 
