@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings
+from pydantic import BaseSettings  # Not from pydantic_settings
 from functools import lru_cache
 from typing import List
 
@@ -22,7 +22,6 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = False
-        extra = "allow"  # This allows extra fields
 
 @lru_cache()
 def get_settings():
