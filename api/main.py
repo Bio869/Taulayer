@@ -56,13 +56,13 @@ async def root():
 async def health_check(supabase: Client = Depends(get_db)):
     """Check API and database health"""
     try:
-        # Test database connection
-        # You can modify this based on your table structure
-        result = supabase.table("_test").select("*").limit(1).execute()
+        # Test database connection with tasks table
+        result = supabase.table("tasks").select("*").limit(1).execute()
         return {
             "status": "healthy",
             "database": "connected",
-            "api_version": settings.api_version
+            "api_version": settings.api_version,
+            "tasks_count": len(result.data) if result.data else 0
         }
     except Exception as e:
         logger.error(f"Health check failed: {str(e)}")
@@ -70,7 +70,7 @@ async def health_check(supabase: Client = Depends(get_db)):
             "status": "healthy",
             "database": "disconnected",
             "api_version": settings.api_version,
-            "note": "Database test query failed, but API is running"
+            "error": str(e)
         }
 
 # Example: User registration endpoint
