@@ -10,7 +10,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils.token_estimator import TokenEstimator
 from utils.latency_model import LatencyModel
-from utils.request_analyzer import RequestAnalyzer
+from utils.request_handler import RequestAnalyzer
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ class Predictor:
     def __init__(self):
         self.token_estimator = TokenEstimator()
         self.latency_model = LatencyModel()
-        self.request_analyzer = RequestAnalyzer()
+        self.request_handler = RequestAnalyzer()
     
     async def analyze_request(self, prompt: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
@@ -42,7 +42,7 @@ class Predictor:
             token_distribution = self.token_estimator.analyze_token_distribution(payload)
             
             # 2. Analyze complexity
-            complexity_result = self.request_analyzer.analyze_complexity(payload)
+            complexity_result = self.request_handler.analyze_complexity(payload)
             
             # 3. Predict latency
             predicted_latency, confidence_interval = self.latency_model.predict_latency(

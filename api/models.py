@@ -8,6 +8,9 @@ import uuid
 class RequestStatus(str, Enum):
     PENDING = "pending"
     ANALYZING = "analyzing"
+    SENT_TO_EXECUTION = "sent_to_execution"
+    BELOW_THRESHOLD_SUGGESTIONS_SENT = "below_threshold_suggestions_sent"
+    SCHEDULED = "scheduled"
     PROCESSING = "processing"
     COMPLETED = "completed"
     FAILED = "failed"
@@ -29,6 +32,36 @@ class PredictRequest(BaseModel):
     user_id: Optional[str] = Field(None, description="Optional user identifier")
     priority: Optional[Priority] = Field(None, description="Request priority override")
     metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Additional metadata")
+
+class RequestCreate(BaseModel):
+    prompt: str = Field(..., min_length=1, description="The API request to analyze")
+    priority: Optional[Priority] = Field(None, description="Request priority")
+    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    conversation_history: Optional[List[str]] = Field(default_factory=list, description="Previous conversation turns")
+
+class ThresholdResult(BaseModel):
+    passed: bool
+    token_score: int
+    latency_score: float
+    complexity_score: float
+    overall_vague_open_ended_score: float
+    priority_thresholds: Dict[str, Any]
+    reasons: List[str]
+
+class ScheduleRequest(BaseModel):
+    execution_time: Optional[datetime] = Field(None, description="Specific time to execute")
+    cron_expression: Optional[str] = Field(None, description="Cron expression for recurring execution")
+    delay_minutes: Optional[int] = Field(None, description="Delay in minutes from now")
+
+class RequestResponse(BaseModel):
+    request_id: uuid.UUID
+    status: RequestStatus
+    estimated_completion_time: Optional[datetime] = None
+    token_estimate: Optional[int] = None
+    latency_estimate: Optional[float] = None
+    complexity_score: Optional[float] = None
+    suggestions: Optional[List[Dict[str, Any]]] = None
+    threshold_result: Optional[ThresholdResult] = None
 
 class PredictResponse(BaseModel):
     request_id: uuid.UUID
