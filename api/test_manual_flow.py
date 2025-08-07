@@ -12,7 +12,8 @@ if API_KEY:
 # ─── Payload ──────────────────────────────────────────────────────────────
 payload = {
     "prompt": "How many sales did we have last month?",
-    "priority": "medium"
+    "priority": "medium",
+    "type": "other"
 }
 
 # ─── Request ──────────────────────────────────────────────────────────────
