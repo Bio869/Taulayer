@@ -1,6 +1,6 @@
 # api/routes/workflow_requests.py
 
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+from fastapi import APIRouter, Depends, BackgroundTasks
 from datetime import datetime, timedelta
 from typing import Optional, Dict
 
@@ -8,7 +8,7 @@ from supabase import Client
 from schemas import RequestCreate, RequestResponse, Priority, Suggestion
 from config import settings
 from auth import get_current_user
-from services import request_handler, threshold_checker, scheduler
+from services import request_handler, scheduler
 from logic import predictor, suggester
 from db.dependencies import get_db
 
@@ -32,7 +32,7 @@ async def create_request(
     predictions = predictor.analyze_request(request.prompt)
 
     # 4. Threshold evaluation
-    result = threshold_checker.check_thresholds(predictions, priority)
+    result = predictor.check_thresholds(predictions, priority)
 
     now = datetime.utcnow()
 
