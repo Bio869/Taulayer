@@ -1,9 +1,9 @@
-# api/routes/workflow_requests.py
+# api/workflow_requests.py
 
 from fastapi import APIRouter, Depends, BackgroundTasks
 from datetime import datetime, timedelta
 from typing import Optional, Dict
-
+from auth import get_or_create_anonymous_user
 from supabase import Client
 from schemas import RequestCreate, RequestResponse, Priority, Suggestion
 from config import settings
@@ -22,7 +22,7 @@ async def create_request(
     supabase: Client = Depends(get_db)
 ):
     # 1. Determine user identity
-    user_id = current_user["id"] if current_user else "anonymous"
+    user_id = current_user["id"] if current_user else get_or_create_anonymous_user(supabase)["id"]
     priority = request.priority or (current_user.get("default_priority") if current_user else "medium")
 
     # 2. Create request row (PENDING → ANALYZING)

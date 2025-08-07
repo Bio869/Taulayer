@@ -6,10 +6,24 @@ from supabase import Client
 import hashlib
 import secrets
 from typing import Optional
-import logging
+# import logging
+import uuid
 
 # API Key header configuration: expects `X-API-Key` in headers
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+# create anonymous user if needed
+def get_or_create_anonymous_user(supabase: Client):
+    anon_id = str(uuid.uuid4())
+
+    # Optional: insert anonymous user into `users` table if needed
+    supabase.table("users").insert({
+        "id": anon_id,
+        "type": "anonymous",
+        "priority": "low"  # or set a default if your schema expects it
+    }).execute()
+
+    return {"id": anon_id, "type": "anonymous"}
 
 def generate_api_key() -> str:
     """Generate a secure API key for a new user or external client.
