@@ -20,7 +20,7 @@ def get_or_create_anonymous_user(supabase: Client):
     supabase.table("users").insert({
         "id": anon_id,
         "type": "anonymous",
-        "priority": "low"  # or set a default if your schema expects it
+        "default_priority": "low"  # or set a default if your schema expects it
     }).execute()
 
     return {"id": anon_id, "type": "anonymous"}
