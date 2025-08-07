@@ -10,6 +10,7 @@ from config import settings
 from auth import get_current_user
 from services import request_handler, threshold_checker, scheduler
 from logic import predictor, suggester
+from db.dependencies import get_db
 
 router = APIRouter()
 
@@ -18,7 +19,7 @@ async def create_request(
     request: RequestCreate,
     background_tasks: BackgroundTasks,
     current_user: Optional[Dict] = Depends(get_current_user),
-    supabase: Client = Depends(lambda: Client)  # will be injected by main
+    supabase: Client = Depends(get_db)
 ):
     # 1. Determine user identity
     user_id = current_user["id"] if current_user else "anonymous"
@@ -75,3 +76,4 @@ async def create_request(
             complexity_score=predictions["complexity_score"],
             suggestions=suggestion_objs
         )
+print("✅ workflow_requests router successfully loaded")

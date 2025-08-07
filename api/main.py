@@ -2,6 +2,7 @@
 
 import logging
 from datetime import datetime
+from db.dependencies import get_db
 
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,20 +18,7 @@ from routes.workflow_requests import router as requests_router
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ---- Helpers ----
-
-def get_supabase() -> Client:
-    return create_client(settings.supabase_url, settings.supabase_key)
-
-def get_db(current_user: Optional[Dict] = Depends(get_current_user)) -> Client:
-    try:
-        return get_supabase()
-    except Exception as e:
-        logger.error(f"DB connection failed: {e}")
-        raise HTTPException(503, "Database connection failed")
-
 # ---- App setup ----
-
 app = FastAPI(
     title=settings.api_title,
     version=settings.api_version,
