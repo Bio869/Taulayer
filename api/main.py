@@ -1,7 +1,6 @@
 # api/main.py
 
 import logging
-import uuid
 from datetime import datetime
 
 from fastapi import FastAPI, HTTPException, Depends
@@ -9,8 +8,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional, Dict
 
 from supabase import create_client, Client
+from fastapi.responses import JSONResponse
 from config import settings
-from auth import get_current_user, require_api_key
+from auth import get_current_user
+from routes.workflow_requests import router as requests_router
 
 # configure logging
 logging.basicConfig(level=logging.INFO)
@@ -45,6 +46,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ---- Routes ----
+
+app.include_router(requests_router, prefix="/api")
+
+# ---- Healthcheck and Monitoring ----
+
+@app.get("/healthcheck", tags=["Monitoring"])
+async def healthcheck():
+    return JSONResponse(status_code=200, content={"status": "ok"})
 
 # ---- Smoke-test endpoints ----
 

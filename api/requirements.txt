@@ -1,9 +1,27 @@
+# requirements.txt
+
+# Core packaging
 setuptools>=65.0.0
 wheel>=0.40.0
+
+# Web framework
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
+
+# Database client
 supabase==2.0.0
+
+# Environment & settings
 python-dotenv==1.0.0
-pydantic-settings>=2.10.1
+pydantic-settings>=2.1.0
+
+# Token estimation
 tiktoken==0.5.2
+
+# Optional: vector math / future model support
 numpy>=1.26.0
+
+# Python library used to send HTTP requests easily — like GET, POST, PUT, DELETE, etc.
+requests>=2.31.0
+
+
