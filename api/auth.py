@@ -6,11 +6,18 @@ from supabase import Client
 import hashlib
 import secrets
 from typing import Optional
-# import logging
+import logging
 import uuid
 
 # API Key header configuration: expects `X-API-Key` in headers
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+# Create a logger object for this module (file)
+# __name__ ensures the logger name matches the module's name (e.g., 'auth')
+logger = logging.getLogger(__name__)
+
+# Sets up logging to show messages at INFO level or higher in the console. Can be customized for format or file output.
+logging.basicConfig(level=logging.INFO)
 
 # create anonymous user if needed
 def get_or_create_anonymous_user(supabase: Client):
@@ -19,7 +26,7 @@ def get_or_create_anonymous_user(supabase: Client):
     # Optional: insert anonymous user into `users` table if needed
     supabase.table("users").insert({
         "id": anon_id,
-        "type": "anonymous",
+        "type": "other",
         "default_priority": "low"  # or set a default if your schema expects it
     }).execute()
 
