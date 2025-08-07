@@ -2,6 +2,7 @@
 
 from typing import Dict, List
 from pydantic import BaseModel
+import random
 
 class ThresholdResult(BaseModel):
     passed: bool
@@ -19,8 +20,12 @@ def analyze_request(prompt: str) -> Dict:
     return {
         "total_tokens": len(prompt.split()),             # Simulate token count
         "latency_ms": len(prompt) * 5,                   # Fake latency prediction
-        "complexity_score": min(len(prompt) / 100, 1.0)  # Dummy complexity cap at 1.0
+        "complexity_score": min(len(prompt) / 100, 1.0),  # Dummy complexity cap at 1.0
+        "embedded": generate_fake_embedding()
     }
+
+def generate_fake_embedding(dim: int = 1536) -> list:
+    return [random.uniform(-1, 1) for _ in range(dim)]
 
 def check_thresholds(predictions: Dict, priority: str) -> ThresholdResult:
     limits = THRESHOLDS.get(priority, THRESHOLDS["low"])
