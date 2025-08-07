@@ -1,4 +1,4 @@
-# api/services/threshold_checker.py
+# api/logic/predictor.py
 
 from typing import Dict, List
 from pydantic import BaseModel
@@ -13,6 +13,14 @@ THRESHOLDS = {
     "medium":  {"tokens": 300, "latency": 800, "complexity": 0.6},
     "high":    {"tokens": 1000, "latency": 1500, "complexity": 1.0},
 }
+
+def analyze_request(prompt: str) -> Dict:
+    # Placeholder logic — replace with actual estimators
+    return {
+        "total_tokens": len(prompt.split()),             # Simulate token count
+        "latency_ms": len(prompt) * 5,                   # Fake latency prediction
+        "complexity_score": min(len(prompt) / 100, 1.0)  # Dummy complexity cap at 1.0
+    }
 
 def check_thresholds(predictions: Dict, priority: str) -> ThresholdResult:
     limits = THRESHOLDS.get(priority, THRESHOLDS["low"])
