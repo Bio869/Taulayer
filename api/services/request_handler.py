@@ -49,7 +49,7 @@ def update_after_analysis(supabase: Client, request_id: str, predictions: Dict, 
         "predicted_latency": predictions["latency_ms"],
         "predicted_tokens": predictions["total_tokens"],
         "predicted_complexity": predictions["complexity_score"],
-        "vector_embedded": predictions["embedded"],
+        "vector_embedded": predictions["vector_embedded"],
         "status": new_status,
         "updated_at": datetime.utcnow().isoformat()
     }
