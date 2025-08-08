@@ -1,0 +1,6 @@
+{
+  "answer": "Simulated LLM response",
+  "tokens_used": 12,
+  "latency_ms": 180,
+  "reasoning_summary": "Simulated logical reasoning step"
+}

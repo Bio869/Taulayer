@@ -70,7 +70,7 @@ def finalize_execution(
         "executed_end": execution_metrics["executed_end"],
         "actual_latency": execution_metrics["actual_latency"],
         "actual_token_usage": execution_metrics["actual_token_usage"],
-        "actual_theoretical_complexity": execution_metrics["actual_theoretical_complexity"],
+        "reasoning_summary": execution_metrics.get("reasoning_summary", None),
         "recommendations_for_improvement": execution_metrics.get("recommendations_for_improvement", [])
     }
     supabase.table("vector_index").insert(vector_insert).execute()
