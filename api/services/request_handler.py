@@ -40,18 +40,23 @@ def create_request(supabase: Client, user_id: str, prompt: str, priority: str) -
     return request_id
 
 
-def update_after_analysis(supabase: Client, request_id: str, predictions: Dict, new_status: str):
+def update_after_analysis(supabase: Client, request_id: str, predictions: Dict, new_status: str, suggestions: Optional[list] = None):
     """
     Record predictions and status after analysis phase.
+    Optionally record suggestions if provided (for failed threshold).
     """
     update = {
         "predicted_latency": predictions["latency_ms"],
         "predicted_tokens": predictions["total_tokens"],
         "predicted_complexity": predictions["complexity_score"],
-        "embedded": predictions["embedded"],
+        "vector_embedded": predictions["embedded"],
         "status": new_status,
         "updated_at": datetime.utcnow().isoformat()
     }
+
+    if suggestions:
+        update["suggestions"] = suggestions
+
     supabase.table("requests").update(update).eq("id", request_id).execute()
     log_event("analysis_complete", request_id, {"status": new_status})
 

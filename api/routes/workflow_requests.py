@@ -62,7 +62,7 @@ async def create_request(
     else:
         # Failed threshold → generate suggestions
         tips = suggester.generate_suggestions(request.prompt)
-        request_handler.update_after_analysis(supabase, request_id, predictions, "below_threshold_suggestions_sent")
+        request_handler.update_after_analysis(supabase, request_id, predictions, "below_threshold_suggestions_sent", suggestions=tips)
 
         suggestion_objs = [
             Suggestion(title=tip, description=tip) for tip in tips
