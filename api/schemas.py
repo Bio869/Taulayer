@@ -69,9 +69,6 @@ class RequestDetail(BaseModel):
     # Embedding stored at analysis time
     vector_embedding: Optional[List[float]] = None
 
-    # Internal reasoning string
-    reasoning: Optional[str] = None
-
     # If thresholds failed, a list of actionable suggestions
     suggestions: Optional[List[Suggestion]] = None
 
