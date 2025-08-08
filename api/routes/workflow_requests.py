@@ -43,9 +43,11 @@ async def create_request(
         def dummy_llm_execution():
             import time, json
             time.sleep(1)  # Simulate delay
+            print("✅ LLM execution starting...")
             with open("llm_fixed_answer.json") as f:
                 metrics = json.load(f)
             metrics["executed_end"] = datetime.utcnow().isoformat()
+            print("✅ Metrics loaded:", metrics)
             request_handler.finalize_execution(supabase, request_id, metrics, success=True)
 
         scheduler.enqueue_background_task(background_tasks, dummy_llm_execution)

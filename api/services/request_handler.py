@@ -51,8 +51,10 @@ def update_after_analysis(supabase: Client, request_id: str, predictions: Dict, 
         "predicted_complexity": predictions["complexity_score"],
         "vector_embedding": predictions["vector_embedding"],
         "status": new_status,
-        "updated_at": datetime.utcnow().isoformat()
     }
+
+    if new_status == "sent_to_execution":
+        update["executed_at"] = datetime.utcnow().isoformat()
 
     if suggestions:
         update["suggestions"] = suggestions
@@ -75,14 +77,21 @@ def finalize_execution(
         "executed_end": execution_metrics["executed_end"],
         "actual_latency": execution_metrics["actual_latency"],
         "actual_token_usage": execution_metrics["actual_token_usage"],
+        "answer": execution_metrics.get("answer", None),
         "reasoning_summary": execution_metrics.get("reasoning_summary", None),
         "recommendations_for_improvement": execution_metrics.get("recommendations_for_improvement", [])
     }
+
+    # Optionally fetch and copy the embedding
+    embedding_result = supabase.table("requests").select("vector_embedding").eq("id", request_id).execute()
+    if embedding_result.data:
+        vector_insert["vector_embedding"] = embedding_result.data[0]["vector_embedding"]
+
     supabase.table("vector_index").insert(vector_insert).execute()
 
     supabase.table("requests").update({
         "status": STATUS_COMPLETED if success else STATUS_FAILED,
-        "updated_at": datetime.utcnow().isoformat()
+        "updated_at": datetime.utcnow().isoformat(),
     }).eq("id", request_id).execute()
 
     log_event("execution_finalized", request_id, {"status": "completed" if success else "failed"})

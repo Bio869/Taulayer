@@ -11,7 +11,7 @@ if API_KEY:
 
 # ─── Payload ──────────────────────────────────────────────────────────────
 payload = {
-    "prompt": "How many sales did we have last month?",
+    "prompt": "How many sales did we have in 2024?",
     "priority": "medium",
     "type": "other"
 }
