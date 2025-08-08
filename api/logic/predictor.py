@@ -21,7 +21,7 @@ def analyze_request(prompt: str) -> Dict:
         "total_tokens": len(prompt.split()),             # Simulate token count
         "latency_ms": len(prompt) * 5,                   # Fake latency prediction
         "complexity_score": min(len(prompt) / 100, 1.0),  # Dummy complexity cap at 1.0
-         "vector_embedded": generate_fake_embedding()  # Simulate embedding
+         "vector_embedding": generate_fake_embedding()  # Simulate embedding
     }
 
 def generate_fake_embedding(dim: int = 1536) -> list:
