@@ -1,16 +1,16 @@
 # api/workflow_requests.py
 
-from fastapi import APIRouter, Depends, BackgroundTasks
 from datetime import datetime, timedelta
 from typing import Optional, Dict
-from auth import get_or_create_anonymous_user
+
+from fastapi import APIRouter, Depends, BackgroundTasks, Header, HTTPException
 from supabase import Client
-from schemas import RequestCreate, RequestResponse, Priority, Suggestion
-from config import settings
-from auth import get_current_user
-from services import request_handler, scheduler
-from logic import predictor, suggester
+
+from auth import get_current_user, resolve_user_identity
 from db.dependencies import get_db
+from logic import predictor, suggester
+from schemas import RequestCreate, RequestResponse, Suggestion
+from services import request_handler, scheduler
 
 router = APIRouter()
 
@@ -19,21 +19,35 @@ async def create_request(
     request: RequestCreate,
     background_tasks: BackgroundTasks,
     current_user: Optional[Dict] = Depends(get_current_user),
-    supabase: Client = Depends(get_db)
+    supabase: Client = Depends(get_db),
+    x_provided_user_id: Optional[str] = Header(None),  # external ID via header
 ):
-    # 1. Determine user identity
-    user_id = current_user["id"] if current_user else get_or_create_anonymous_user(supabase)["id"]
-    priority = request.priority or (current_user.get("default_priority") if current_user else "medium")
+    """
+    Resolve user -> create request -> predict -> pass/fail thresholds -> execute or suggest.
+    User resolution precedence:
+      1) provided_user_id (header > body metadata)  → upsert/reuse by external ID
+      2) internal user_id (payload)                 → lookup by UUID (internal tools)
+      3) API-key user                               → get_current_user()
+      4) otherwise                                  → 401 Unauthorized (no anonymous fallback)
+    """
+    # ── 1) Resolve user identity (will raise 401/404 on failure) ────────────────
+    user_row, resolution_notes = resolve_user_identity(
+        supabase, request, current_user, x_provided_user_id
+    )
+    user_id = user_row["id"]
+    priority = request.priority or user_row.get("default_priority", "medium")
 
-    # 2. Create request row (PENDING → ANALYZING)
+    # ── 2) Create request row (PENDING → ANALYZING) ─────────────────────────────
     request_id = request_handler.create_request(supabase, user_id, request.prompt, priority)
 
-    # 3. Synchronous prediction
+    # Persist resolution notes to error_message (newline-joined)
+    request_handler.update_request_notes(supabase, request_id, resolution_notes)
+
+    # ── 3) Synchronous prediction ───────────────────────────────────────────────
     predictions = predictor.analyze_request(request.prompt)
 
-    # 4. Threshold evaluation
+    # ── 4) Threshold evaluation ─────────────────────────────────────────────────
     result = predictor.check_thresholds(predictions, priority)
-
     now = datetime.utcnow()
 
     if result.passed:
@@ -58,24 +72,39 @@ async def create_request(
             latency_estimate=predictions["latency_ms"],
             token_estimate=predictions["total_tokens"],
             complexity_score=predictions["complexity_score"],
-            estimated_completion_time=now + timedelta(milliseconds=predictions["latency_ms"] + 300)
+            estimated_completion_time=now + timedelta(milliseconds=predictions["latency_ms"] + 300),
         )
 
-    else:
-        # Failed threshold → generate suggestions
-        tips = suggester.generate_suggestions(request.prompt)
-        request_handler.update_after_analysis(supabase, request_id, predictions, "below_threshold_suggestions_sent", suggestions=tips)
+    # Failed threshold → generate suggestions
+    tips = suggester.generate_suggestions(request.prompt)
+    request_handler.update_after_analysis(
+        supabase, request_id, predictions,
+        "below_threshold_suggestions_sent",
+        suggestions=tips,
+    )
+    suggestion_objs = [Suggestion(title=tip, description=tip) for tip in tips]
 
-        suggestion_objs = [
-            Suggestion(title=tip, description=tip) for tip in tips
-        ]
+    return RequestResponse(
+        request_id=request_id,
+        status="below_threshold_suggestions_sent",
+        latency_estimate=predictions["latency_ms"],
+        token_estimate=predictions["total_tokens"],
+        complexity_score=predictions["complexity_score"],
+        suggestions=suggestion_objs,
+    )
 
-        return RequestResponse(
-            request_id=request_id,
-            status="below_threshold_suggestions_sent",
-            latency_estimate=predictions["latency_ms"],
-            token_estimate=predictions["total_tokens"],
-            complexity_score=predictions["complexity_score"],
-            suggestions=suggestion_objs
-        )
+@router.get("/requests/{request_id}")
+async def get_request_status(
+    request_id: str,
+    supabase: Client = Depends(get_db),
+):
+    """
+    Fetch request details, including error_message (resolution notes) if present.
+    """
+    res = supabase.table("requests").select("*").eq("id", request_id).single().execute()
+    if not res.data:
+        raise HTTPException(status_code=404, detail="Request not found")
+
+    return res.data
+
 print("✅ workflow_requests router successfully loaded")

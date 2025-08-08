@@ -3,6 +3,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List, Literal, Dict, Any
 from datetime import datetime
+from uuid import UUID
 
 # Priority levels
 Priority = Literal["low", "medium", "high"]
@@ -33,6 +34,7 @@ class RequestCreate(BaseModel):
     priority: Optional[Priority] = "medium"
     scheduled_for: Optional[datetime] = None
     metadata: Optional[Dict[str, Any]] = None
+    user_id: Optional[UUID] = None
 
 # ─── Response after creation/analysis ────────────────────────────────────────────
 class RequestResponse(BaseModel):
@@ -47,7 +49,7 @@ class RequestResponse(BaseModel):
 # ─── Authenticated User Schema ────────────────────────────────────────────────
 class UserSchema(BaseModel):
     id: str
-    type: Literal["user prompt", "agent prompt"]
+    type: Literal["user prompt", "agent prompt", "other"]
     default_priority: Priority
     provided_user_id: str
     api_key_hash: Optional[str] = None  # Not returned in responses, only used for lookup
