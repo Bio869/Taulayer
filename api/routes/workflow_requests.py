@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, BackgroundTasks, Header, HTTPException
 from supabase import Client
 
 from auth import get_current_user, resolve_user_identity
-from db.dependencies import get_db
+from db.dependencies import get_supabase
 from logic import predictor, suggester
 from schemas import RequestCreate, RequestResponse, Suggestion
 from services import request_handler, scheduler
@@ -19,7 +19,7 @@ async def create_request(
     request: RequestCreate,
     background_tasks: BackgroundTasks,
     current_user: Optional[Dict] = Depends(get_current_user),
-    supabase: Client = Depends(get_db),
+    supabase: Client = Depends(get_supabase),
     x_provided_user_id: Optional[str] = Header(None),  # external ID via header
 ):
     """
@@ -96,7 +96,7 @@ async def create_request(
 @router.get("/requests/{request_id}")
 async def get_request_status(
     request_id: str,
-    supabase: Client = Depends(get_db),
+    supabase: Client = Depends(get_supabase),
 ):
     """
     Fetch request details, including error_message (resolution notes) if present.

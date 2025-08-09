@@ -8,8 +8,7 @@ import secrets
 from typing import Optional, Dict, List, Tuple, Any
 import logging
 import uuid
-
-from db.dependencies import get_db
+from db.dependencies import get_supabase
 # helpers for lookups / upserts
 from services.request_handler import get_user_by_id, upsert_user_by_external_id
 
@@ -112,7 +111,7 @@ def hash_api_key(api_key: str) -> str:
 
 async def get_current_user(
     api_key: Optional[str] = Security(api_key_header),
-    supabase: Client = Depends(get_db),
+    supabase: Client = Depends(get_supabase),
 ):
     """
     Resolve current user by API key. If no API key is provided, return None (unauthenticated).
