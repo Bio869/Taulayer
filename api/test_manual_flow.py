@@ -1,4 +1,3 @@
-# test_manual_flow.py
 import requests
 import time
 import uuid
@@ -8,11 +7,16 @@ API_BASE = "https://taulayer-api.onrender.com/api"
 POST_URL = f"{API_BASE}/requests"
 GET_URL = lambda rid: f"{API_BASE}/requests/{rid}"
 
-API_KEY = None             # e.g., "tl_abc123xyz" to test API-key auth
-KNOWN_USER_ID = None       # e.g., an existing users.id UUID to test internal ID path
+# ⚠️ Set this to the ACTUAL API key (plain string like "tl_abc123")
+API_KEY = None
+
+# Provided by you (internal UUID for users.id)
+KNOWN_USER_ID = "685f529c-38ea-4738-a182-accb4950fe03"
+
+# This should 404
 UNKNOWN_USER_ID = "00000000-0000-0000-0000-000000000000"
 
-# Use the provided external user id to confirm reuse across header/body
+# Provided by you (external id / provided_user_id)
 EXTERNAL_ID = "anonymous_685f529c"
 
 BASE_PAYLOAD = {
@@ -20,8 +24,9 @@ BASE_PAYLOAD = {
     "priority": "medium",
 }
 
-def pretty(label, resp):
-    print(f"\n— {label} —")
+def pretty(label, resp, start_ts):
+    elapsed = (time.time() - start_ts) * 1000.0
+    print(f"\n— {label} —  ({elapsed:.1f} ms)")
     print("Status:", resp.status_code)
     try:
         print("JSON:", resp.json())
@@ -29,17 +34,20 @@ def pretty(label, resp):
         print("Text:", resp.text)
 
 def GET_request(request_id):
-    time.sleep(2)  # give the background task a moment
+    # Give the background task a moment
+    time.sleep(2)
+    start = time.time()
     r = requests.get(GET_URL(request_id))
-    pretty(f"GET /requests/{request_id}", r)
+    pretty(f"GET /requests/{request_id}", r, start)
 
 def POST_case(label, payload=None, headers=None):
     payload = payload or BASE_PAYLOAD.copy()
     headers = headers or {}
     if API_KEY:
         headers["X-API-Key"] = API_KEY
+    start = time.time()
     r = requests.post(POST_URL, json=payload, headers=headers)
-    pretty(label, r)
+    pretty(label, r, start)
     try:
         data = r.json()
         return r.status_code, data.get("request_id")
@@ -67,7 +75,7 @@ def run_tests():
     if rid:
         GET_request(rid)
 
-    # 3) API-key user (only runs if API_KEY is set)
+    # 3) API-key user (only runs if API_KEY is set to a real key)
     if API_KEY:
         status, rid = POST_case("POST with API key only")
         if rid:
@@ -75,7 +83,7 @@ def run_tests():
     else:
         print("\n(Skipping API key test — set API_KEY to enable)")
 
-    # 4) Internal user_id happy path (only runs if KNOWN_USER_ID is set)
+    # 4) Internal user_id happy path (uses your KNOWN_USER_ID)
     if KNOWN_USER_ID:
         payload = BASE_PAYLOAD.copy()
         payload["user_id"] = KNOWN_USER_ID
