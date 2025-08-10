@@ -3,14 +3,14 @@
 import logging
 from datetime import datetime
 
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from supabase import Client
 
 from config import settings
 from db.dependencies import get_supabase
-from routes.workflow_requests import router as requests_router  # ← ensure path matches file location
+from routes.workflow_requests import router as requests_router
 
 # configure logging
 logging.basicConfig(level=logging.INFO)
@@ -33,6 +33,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ---- Global Exception Handling ----
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """
+    Ensure API consistently returns a clean JSON error for unauthorized/unverified users.
+    """
+    logger.warning(f"HTTP {exc.status_code} - {exc.detail} - Path: {request.url}")
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error": exc.detail, "status": "error"}
+    )
+
 # ---- Routes ----
 app.include_router(requests_router, prefix="/api")
 
@@ -41,7 +53,6 @@ app.include_router(requests_router, prefix="/api")
 async def healthcheck():
     return JSONResponse(status_code=200, content={"status": "ok"})
 
-# ---- Smoke-test endpoints ----
 @app.get("/ping")
 async def ping():
     return {"pong": True}
@@ -55,7 +66,6 @@ async def root():
 
 @app.get("/health")
 async def health(supabase: Client = Depends(get_supabase)):
-    # trivial DB call to prove connectivity
     try:
         _ = supabase.table("users").select("id").limit(1).execute()
         return {

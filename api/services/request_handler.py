@@ -4,7 +4,7 @@ from supabase import Client
 from datetime import datetime
 from typing import Optional, Dict
 from uuid import UUID
-
+from fastapi import HTTPException
 from services.logger import log_event
 
 STATUS_PENDING = "pending"
@@ -21,11 +21,51 @@ def get_user_by_id(supabase: Client, user_id: UUID):
         .eq("id", str(user_id)).limit(1).execute()
     return res.data[0] if res.data else None
 
+
+def get_user_by_external_id(supabase: Client, ext_id: str):
+    """
+    Lookup an existing user by provided_user_id. Returns {id, default_priority} or None.
+    """
+    res = (
+        supabase.table("users")
+        .select("id, default_priority")
+        .eq("provided_user_id", ext_id)
+        .single()
+        .execute()
+    )
+    return res.data if res.data else None
+
+
 def update_request_notes(supabase: Client, request_id: str, notes: list[str]):
-    if notes:
-        supabase.table("requests").update({
-            "error_message": "\n".join(notes)
-        }).eq("id", request_id).execute()
+    """
+    Update error_message in requests — only if the request belongs to a verified user.
+    For unauthenticated calls, return an API error but do not persist in DB.
+    """
+    if not notes:
+        return
+
+    # Check if request has a valid user_id
+    req_data = (
+        supabase.table("requests")
+        .select("user_id")
+        .eq("id", request_id)
+        .single()
+        .execute()
+    )
+
+    if not req_data.data or not req_data.data.get("user_id"):
+        log_event("unauthorized_request_update", request_id, {"notes": notes})
+        # No valid user_id → API error, no DB write
+        raise HTTPException(
+            status_code=401,
+            detail="Unauthorized: invalid or unverified user/API key."
+        )
+
+    # Verified user → store actual error notes in DB
+    supabase.table("requests").update({
+        "error_message": "\n".join(notes)
+    }).eq("id", request_id).execute()
+
 
 def upsert_user_by_external_id(
     supabase: Client,

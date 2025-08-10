@@ -30,18 +30,24 @@ async def create_request(
       3) API-key user                               → get_current_user()
       4) otherwise                                  → 401 Unauthorized (no anonymous fallback)
     """
-    # ── 1) Resolve user identity (will raise 401/404 on failure) ────────────────
-    user_row, resolution_notes = resolve_user_identity(
-        supabase, request, current_user, x_provided_user_id
-    )
+    # ── 1) Resolve user identity ────────────────────────────────────────────────
+    try:
+        user_row, resolution_notes = resolve_user_identity(
+            supabase, request, current_user, x_provided_user_id
+        )
+    except HTTPException as e:
+        # Unverified user — return API error without storing in DB
+        raise e
+
     user_id = user_row["id"]
     priority = request.priority or user_row.get("default_priority", "medium")
 
     # ── 2) Create request row (PENDING → ANALYZING) ─────────────────────────────
     request_id = request_handler.create_request(supabase, user_id, request.prompt, priority)
 
-    # Persist resolution notes to error_message (newline-joined)
-    request_handler.update_request_notes(supabase, request_id, resolution_notes)
+    # Store resolution notes only for verified users
+    if resolution_notes:
+        request_handler.update_request_notes(supabase, request_id, resolution_notes)
 
     # ── 3) Synchronous prediction ───────────────────────────────────────────────
     predictions = predictor.analyze_request(request.prompt)

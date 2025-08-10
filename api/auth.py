@@ -7,40 +7,13 @@ import hashlib
 import secrets
 from typing import Optional, Dict, List, Tuple, Any
 import logging
-import uuid
 from db.dependencies import get_supabase
-# helpers for lookups / upserts
-from services.request_handler import get_user_by_id, upsert_user_by_external_id
+from services.request_handler import get_user_by_id, get_user_by_external_id
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
-
-
-# (Optional legacy helper; not used by resolve_user_identity anymore)
-def get_or_create_anonymous_user(supabase: Client) -> Dict:
-    """
-    DEPRECATED in the auth-required flow.
-    Creates a unique anonymous user (not used by resolve_user_identity).
-    """
-    anon_pid = f"anonymous_{uuid.uuid4().hex[:8]}"
-
-    supabase.table("users").insert({
-        "type": "other",              # enum: 'user prompt' | 'agent prompt' | 'other'
-        "default_priority": "low",
-        "provided_user_id": anon_pid,
-        "api_key_hash": None,
-    }).execute()
-
-    created = (
-        supabase.table("users")
-        .select("id, default_priority")
-        .eq("provided_user_id", anon_pid)
-        .single()
-        .execute()
-    )
-    return created.data
 
 
 def resolve_user_identity(
@@ -50,52 +23,47 @@ def resolve_user_identity(
     x_provided_user_id: Optional[str] = None,
 ) -> Tuple[Dict, List[str]]:
     """
-    Resolve the caller's identity by strict precedence (no anonymous fallback):
-      1) provided_user_id (header > body)  → upsert/reuse by external ID
+    Resolve the caller's identity by strict precedence:
+      1) provided_user_id (header > body)  → lookup only (must exist)
       2) internal user_id (payload)        → lookup by UUID (must exist)
       3) API-key user                      → get_current_user()
       4) otherwise                         → 401 Unauthorized
 
-    Returns:
-      (user_row: dict, resolution_notes: list[str])
-
-    Raises:
-      HTTPException 404 if user_id is supplied but not found.
-      HTTPException 401 if no valid identity is provided.
+    Only verified users reach the caller.
     """
     notes: List[str] = []
 
-    # 1) External ID (header wins, else body metadata)
+    # 1) External ID lookup
     provided_id = x_provided_user_id or ((getattr(request, "metadata", None) or {}).get("provided_user_id"))
     if provided_id:
-        row = upsert_user_by_external_id(
-            supabase,
-            provided_id,
-            default_priority="medium",
-            user_type="other",
-        )
-        notes.append(f"Resolved via provided_user_id='{provided_id}' (created or reused).")
+        row = get_user_by_external_id(supabase, provided_id)
+        if not row:
+            logger.warning(f"Unverified provided_user_id: {provided_id}")
+            raise HTTPException(status_code=404, detail="User not found")
+        logger.info(f"Resolved user via provided_user_id='{provided_id}' → {row['id']}")
+        notes.append(f"Resolved via provided_user_id='{provided_id}'.")
         return row, notes
 
-    # 2) Internal UUID (for internal tools/tests)
+    # 2) Internal UUID lookup
     req_user_id = getattr(request, "user_id", None)
     if req_user_id:
         row = get_user_by_id(supabase, req_user_id)
-        if row:
-            notes.append(f"Resolved via internal user_id={req_user_id}.")
-            return row, notes
-        # user_id explicitly provided but not found → 404
-        raise HTTPException(status_code=404, detail=f"user_id '{req_user_id}' not found")
+        if not row:
+            logger.warning(f"Unverified internal user_id: {req_user_id}")
+            raise HTTPException(status_code=404, detail="User not found")
+        notes.append(f"Resolved via internal user_id={req_user_id}.")
+        return row, notes
 
     # 3) API-key authenticated user
     if current_user:
         notes.append("Resolved via API-key authentication.")
         return current_user, notes
 
-    # 4) No identity → reject
+    # 4) No valid identity
+    logger.warning("Unauthenticated request with no valid identity")
     raise HTTPException(
         status_code=401,
-        detail="Authentication required: provide X-Provided-User-Id, user_id, or a valid X-API-Key.",
+        detail="Authentication required: provide X-Provided-User-Id, user_id, or a valid X-API-Key."
     )
 
 
@@ -123,7 +91,7 @@ async def get_current_user(
     try:
         result = (
             supabase.table("users")
-            .select("*")
+            .select("id, default_priority, provided_user_id, type")
             .eq("api_key_hash", api_key_hash)
             .single()
             .execute()
