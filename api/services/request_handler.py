@@ -6,6 +6,8 @@ from typing import Optional, Dict
 from uuid import UUID
 from fastapi import HTTPException
 from services.logger import log_event
+import logging
+logger = logging.getLogger(__name__)
 
 STATUS_PENDING = "pending"
 STATUS_ANALYZING = "analyzing"
@@ -23,16 +25,26 @@ def get_user_by_id(supabase: Client, user_id: UUID):
 
 def get_user_by_external_id(supabase: Client, ext_id: str):
     """
-    Lookup an existing user by provided_user_id. Returns {id, default_priority} or None.
+    Lookup an existing user by provided_user_id.
+    Returns {id, default_priority} or None.
     """
-    res = (
-        supabase.table("users")
-        .select("id, default_priority")
-        .eq("provided_user_id", ext_id)
-        .single()
-        .execute()
-    )
-    return res.data if res.data else None
+    try:
+        res = (
+            supabase.table("users")
+            .select("id, default_priority")
+            .eq("provided_user_id", ext_id)
+            .single()
+            .execute()
+        )
+        return res.data
+    except HTTPException:
+        raise  # Let FastAPI's HTTPException handler deal with this
+    except Exception as e:
+        logger.exception(f"Supabase error in get_user_by_external_id({ext_id}): {e}")
+        raise HTTPException(
+            status_code=503,
+            detail="Service temporarily unavailable: user lookup failed."
+        )
 
 
 def update_request_notes(supabase: Client, request_id: str, notes: list[str]):

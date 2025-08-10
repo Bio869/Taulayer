@@ -47,10 +47,19 @@ def resolve_user_identity(
     # 2) Internal UUID lookup
     req_user_id = getattr(request, "user_id", None)
     if req_user_id:
-        row = get_user_by_id(supabase, req_user_id)
+        try:
+            row = get_user_by_id(supabase, req_user_id)
+        except HTTPException:
+            # already normalized (e.g., 503 from the helper)
+            raise
+        except Exception as e:
+            logger.error(f"Lookup error for internal user_id={req_user_id}: {e}")
+            raise HTTPException(status_code=503, detail="Service temporarily unavailable: user lookup failed.")
+
         if not row:
             logger.warning(f"Unverified internal user_id: {req_user_id}")
             raise HTTPException(status_code=404, detail="User not found")
+
         notes.append(f"Resolved via internal user_id={req_user_id}.")
         return row, notes
 
