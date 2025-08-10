@@ -1,6 +1,8 @@
 import requests
 import time
 
+TIMEOUT = 12  # seconds
+
 # ─── Config ───────────────────────────────────────────────────────────────
 API_BASE = "https://taulayer-api.onrender.com/api"
 POST_URL = f"{API_BASE}/requests"
@@ -26,13 +28,16 @@ def pretty(label, resp, start_ts):
         print("Text:", resp.text)
 
 def GET_request(request_id):
-    # Give the background task a moment
     time.sleep(2)
     start = time.time()
-    r = requests.get(GET_URL(request_id))
+    r = requests.get(GET_URL(request_id), timeout=TIMEOUT)   # ← timeout
     pretty(f"GET /requests/{request_id}", r, start)
     try:
-        return r.json()
+        data = r.json()
+        # sanity check: embedding should not be present anymore
+        if isinstance(data, dict) and "vector_embedding" in data:
+            print("⚠️ vector_embedding leaked in GET response (should be hidden)")
+        return data
     except Exception:
         return None
 
@@ -40,7 +45,7 @@ def POST_case(label, payload=None, headers=None):
     payload = payload or BASE_PAYLOAD.copy()
     headers = headers or {}
     start = time.time()
-    r = requests.post(POST_URL, json=payload, headers=headers)
+    r = requests.post(POST_URL, json=payload, headers=headers, timeout=TIMEOUT)  # ← timeout
     pretty(label, r, start)
     try:
         data = r.json()
@@ -67,8 +72,7 @@ def verify_not_in_db(request_id):
     if not request_id:
         print("No request_id returned — as expected for error case")
         return
-    # GET should 404 if request was never stored
-    r = requests.get(GET_URL(request_id))
+    r = requests.get(GET_URL(request_id), timeout=TIMEOUT)  # ← timeout
     if r.status_code == 404:
         print("✅ Request not stored in DB for error case")
     else:

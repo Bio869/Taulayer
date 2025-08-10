@@ -105,9 +105,21 @@ async def get_request_status(
     supabase: Client = Depends(get_supabase),
 ):
     """
-    Fetch request details, including error_message (resolution notes) if present.
+    Fetch request details suitable for clients (no embeddings).
     """
-    res = supabase.table("requests").select("*").eq("id", request_id).single().execute()
+    res = (
+        supabase.table("requests")
+        .select(
+            "id,user_id,prompt,"
+            "predicted_latency,predicted_tokens,predicted_complexity,"
+            "executed_at,suggestions,status,priority,error_message,"
+            "updated_at,created_at"
+        )
+        .eq("id", request_id)
+        .single()
+        .execute()
+    )
+
     if not res.data:
         raise HTTPException(status_code=404, detail="Request not found")
 

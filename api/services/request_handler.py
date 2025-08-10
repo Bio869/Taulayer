@@ -17,9 +17,8 @@ STATUS_BELOW_THRESHOLD = "below_threshold_suggestions_sent"
 
 
 def get_user_by_id(supabase: Client, user_id: UUID):
-    res = supabase.table("users").select("id, default_priority")\
-        .eq("id", str(user_id)).limit(1).execute()
-    return res.data[0] if res.data else None
+    res = supabase.table("users").select("id, default_priority").eq("id", str(user_id)).single().execute()
+    return res.data if res.data else None
 
 
 def get_user_by_external_id(supabase: Client, ext_id: str):
@@ -53,13 +52,10 @@ def update_request_notes(supabase: Client, request_id: str, notes: list[str]):
         .execute()
     )
 
-    if not req_data.data or not req_data.data.get("user_id"):
-        log_event("unauthorized_request_update", request_id, {"notes": notes})
-        # No valid user_id → API error, no DB write
-        raise HTTPException(
-            status_code=401,
-            detail="Unauthorized: invalid or unverified user/API key."
-        )
+    if not req_data.data:
+        raise HTTPException(status_code=404, detail="Request not found")
+    if not req_data.data.get("user_id"):
+        raise HTTPException(status_code=401, detail="Unauthorized: invalid or unverified user/API key.")
 
     # Verified user → store actual error notes in DB
     supabase.table("requests").update({

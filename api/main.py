@@ -79,6 +79,11 @@ async def health(supabase: Client = Depends(get_supabase)):
             "error": str(e),
             "timestamp": datetime.utcnow().isoformat(),
         }
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.exception(f"Unhandled error at {request.url}: {exc}")
+    return JSONResponse(status_code=500, content={"error": "Internal server error", "status": "error"})
+
 
 if __name__ == "__main__":
     import uvicorn
