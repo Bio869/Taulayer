@@ -7,9 +7,9 @@ POST_URL = f"{API_BASE}/requests"
 GET_URL = lambda rid: f"{API_BASE}/requests/{rid}"
 
 # Set these to match the ONE user you inserted in SQL
-API_KEY = "tl_test_12345"           # plain key you inserted (will be hashed server-side)
-KNOWN_EXTERNAL_ID = "apitest_001"   # provided_user_id you inserted
-KNOWN_USER_ID = None                # optional: set to the UUID returned by SQL (if known)
+API_KEY = "tl_test_12345"  # plain key
+KNOWN_EXTERNAL_ID = "apitest_001"
+KNOWN_USER_ID = "6e5e4001-69b9-43f3-a766-133fe3f8179a"
 
 BASE_PAYLOAD = {
     "prompt": "How many sales did we have in 2024?",
