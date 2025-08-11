@@ -11,6 +11,8 @@ from db.dependencies import get_supabase
 from logic import predictor, suggester
 from schemas import RequestCreate, RequestResponse, Suggestion
 from services import request_handler, scheduler
+import httpx
+import config as settings
 
 router = APIRouter()
 
@@ -20,8 +22,12 @@ async def create_request(
     background_tasks: BackgroundTasks,
     current_user: Optional[Dict] = Depends(get_current_user),
     supabase: Client = Depends(get_supabase),
-    x_provided_user_id: Optional[str] = Header(None),  # external ID via header
+    x_provided_user_id: Optional[str] = Header(None),
+    x_force_db_timeout: Optional[str] = Header(None),  # <-- add
 ):
+    # Debug-only: simulate DB timeout to validate 503/504 handling
+    if settings.debug and x_force_db_timeout == "1":
+        raise httpx.ReadTimeout("simulated read timeout")
     """
     Resolve user -> create request -> predict -> pass/fail thresholds -> execute or suggest.
     User resolution precedence:
