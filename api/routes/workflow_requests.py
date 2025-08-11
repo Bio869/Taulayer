@@ -23,11 +23,19 @@ async def create_request(
     current_user: Optional[Dict] = Depends(get_current_user),
     supabase: Client = Depends(get_supabase),
     x_provided_user_id: Optional[str] = Header(None),
-    x_force_db_timeout: Optional[str] = Header(None),  # <-- add
+    x_force_db_timeout: Optional[str] = Header(None),       
+    x_force_db_unavailable: Optional[str] = Header(None),   
 ):
+    
     # Debug-only: simulate DB timeout to validate 503/504 handling
-    if settings.debug and x_force_db_timeout == "1":
-        raise httpx.ReadTimeout("simulated read timeout")
+    if settings.debug:
+        if x_force_db_timeout == "1":
+            # Simulate an upstream DB timeout -> 504
+            raise HTTPException(status_code=504, detail="Upstream database timeout (simulated)")
+        if x_force_db_unavailable == "1":
+            # Simulate DB unreachable -> 503
+            raise HTTPException(status_code=503, detail="Database temporarily unavailable (simulated)")
+        
     """
     Resolve user -> create request -> predict -> pass/fail thresholds -> execute or suggest.
     User resolution precedence:
