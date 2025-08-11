@@ -11,8 +11,7 @@ from db.dependencies import get_supabase
 from logic import predictor, suggester
 from schemas import RequestCreate, RequestResponse, Suggestion
 from services import request_handler, scheduler
-import httpx
-import config as settings
+from config import settings
 
 router = APIRouter()
 
