@@ -47,7 +47,7 @@ async def create_request(
 
     # Store resolution notes only for verified users
     if resolution_notes:
-        request_handler.update_request_notes(supabase, request_id, resolution_notes)
+        request_handler.update_request_note(supabase, request_id, resolution_notes)
 
     # ── 3) Synchronous prediction ───────────────────────────────────────────────
     predictions = predictor.analyze_request(request.prompt)
@@ -112,7 +112,7 @@ async def get_request_status(
         .select(
             "id,user_id,prompt,"
             "predicted_latency,predicted_tokens,predicted_complexity,"
-            "executed_at,suggestions,status,priority,error_message,"
+            "executed_at,suggestions,status,priority,request_note,"
             "updated_at,created_at"
         )
         .eq("id", request_id)

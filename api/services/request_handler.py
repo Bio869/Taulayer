@@ -53,9 +53,9 @@ def get_user_by_external_id(supabase: Client, ext_id: str):
         raise HTTPException(status_code=503, detail="Service temporarily unavailable: user lookup failed.")
 
 
-def update_request_notes(supabase: Client, request_id: str, notes: list[str]):
+def update_request_note(supabase: Client, request_id: str, notes: list[str]):
     """
-    Update error_message in requests — only if the request belongs to a verified user.
+    Update request_note in requests — only if the request belongs to a verified user.
     For unauthenticated calls, return an API error but do not persist in DB.
     """
     if not notes:
@@ -77,7 +77,7 @@ def update_request_notes(supabase: Client, request_id: str, notes: list[str]):
 
     # Verified user → store actual error notes in DB
     supabase.table("requests").update({
-        "error_message": "\n".join(notes)
+        "request_note": "\n".join(notes)
     }).eq("id", request_id).execute()
 
 

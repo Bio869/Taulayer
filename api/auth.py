@@ -41,7 +41,7 @@ def resolve_user_identity(
             logger.warning(f"Unverified provided_user_id: {provided_id}")
             raise HTTPException(status_code=404, detail="User not found")
         logger.info(f"Resolved user via provided_user_id='{provided_id}' → {row['id']}")
-        notes.append(f"Resolved via provided_user_id='{provided_id}'.")
+        notes.append("Logged in using external ID")
         return row, notes
 
     # 2) Internal UUID lookup
@@ -59,12 +59,13 @@ def resolve_user_identity(
         if not row:
             logger.warning(f"Unverified internal user_id: {req_user_id}")
             raise HTTPException(status_code=404, detail="User not found")
-
-        notes.append(f"Resolved via internal user_id={req_user_id}.")
+        logger.info(f"Resolved user via internal user_id={req_user_id}")
+        notes.append("Logged in using internal ID")
         return row, notes
 
     # 3) API-key authenticated user
     if current_user:
+        logger.info(f"Resolved user via API key (user_id={current_user.get('id')})")
         notes.append("Resolved via API-key authentication.")
         return current_user, notes
 

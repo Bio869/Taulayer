@@ -78,7 +78,7 @@ class RequestDetail(BaseModel):
     scheduled_for: Optional[datetime] = None
 
     # Any error during analysis or execution
-    error_message: Optional[str] = None
+    request_note: Optional[str] = None
 
     # Lifecycle timestamps
     created_at: datetime
