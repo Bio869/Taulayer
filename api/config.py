@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     supabase_url: str
     supabase_key: str
     supabase_service_key: str = ""
+    prompt_max_chars: int = int(os.getenv("PROMPT_MAX_CHARS", "4000"))
+    prompt_min_chars: int = int(os.getenv("PROMPT_MIN_CHARS", "1"))
 
     # API Info
     api_title: str = "Taulayer API"

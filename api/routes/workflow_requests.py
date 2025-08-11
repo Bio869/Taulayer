@@ -25,7 +25,14 @@ async def create_request(
     x_force_db_timeout: Optional[str] = Header(None),       
     x_force_db_unavailable: Optional[str] = Header(None),   
 ):
-    
+    # --- prompt length guard ---
+    if not request.prompt or len(request.prompt) < settings.prompt_min_chars:
+        raise HTTPException(status_code=422, detail="Prompt is required")
+    if len(request.prompt) > settings.prompt_max_chars:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Prompt too long (max {settings.prompt_max_chars} chars)"
+        )
     # Debug-only: simulate DB timeout to validate 503/504 handling
     if settings.debug:
         if x_force_db_timeout == "1":

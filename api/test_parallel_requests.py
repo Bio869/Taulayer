@@ -3,6 +3,28 @@ import os, time, threading, requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from collections import defaultdict
+import math
+
+
+def _percentile(values, p):
+    if not values:
+        return None
+    s = sorted(values)
+    k = max(0, min(len(s)-1, math.ceil(p/100.0 * len(s)) - 1))
+    return s[k]
+
+def _fmt(x):
+    return f"{x:.1f}" if isinstance(x, (int, float)) else "—"
+
+def _summarize_latencies(label, values_ms):
+    if not values_ms:
+        print(f"{label}: n=0")
+        return
+    p50 = _percentile(values_ms, 50)
+    p95 = _percentile(values_ms, 95)
+    print(f"{label}: n={len(values_ms)} | "
+          f"p50={_fmt(p50)} ms | p95={_fmt(p95)} ms | "
+          f"min={_fmt(min(values_ms))} ms | max={_fmt(max(values_ms))} ms")
 
 # ─── Config ───────────────────────────────────────────────────────────────
 TIMEOUT = int(os.getenv("TAULAYER_TIMEOUT", "30"))  # read-timeout (s). Connect-timeout fixed at 5s below.

@@ -5,6 +5,5 @@
   "actual_latency": 180,
   "actual_token_usage": 12,
   "reasoning_summary": "Simulated logical summary of steps taken.",
-  "recommendations_for_improvement": [],
   "executed_end": "2025-08-08T05:00:00Z"
 }

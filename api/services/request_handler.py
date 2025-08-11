@@ -131,7 +131,6 @@ def finalize_execution(supabase: Client, request_id: str, execution_metrics: Dic
         "actual_token_usage": execution_metrics["actual_token_usage"],
         "answer": execution_metrics.get("answer"),
         "reasoning_summary": execution_metrics.get("reasoning_summary"),
-        "recommendations_for_improvement": execution_metrics.get("recommendations_for_improvement", []),
     }
     embedding_result = with_retry(lambda:
         supabase.table("requests").select("vector_embedding").eq("id", request_id).execute()
