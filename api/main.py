@@ -11,6 +11,7 @@ from supabase import Client
 from config import settings
 from db.dependencies import get_supabase
 from routes.workflow_requests import router as requests_router
+from fastapi.exceptions import RequestValidationError
 
 # configure logging
 logging.basicConfig(level=logging.INFO)
@@ -84,6 +85,10 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     logger.exception(f"Unhandled error at {request.url}: {exc}")
     return JSONResponse(status_code=500, content={"error": "Internal server error", "status": "error"})
 
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    logger.warning(f"HTTP 422 - Validation error - Path: {request.url} - {exc.errors()}")
+    return JSONResponse(status_code=422, content={"error": "Invalid request payload", "status": "error"})
 
 if __name__ == "__main__":
     import uvicorn

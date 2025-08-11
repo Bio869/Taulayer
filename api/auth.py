@@ -9,6 +9,7 @@ from typing import Optional, Dict, List, Tuple, Any
 import logging
 from db.dependencies import get_supabase
 from services.request_handler import get_user_by_id, get_user_by_external_id
+from services.db_guard import with_retry
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
@@ -65,8 +66,8 @@ def resolve_user_identity(
 
     # 3) API-key authenticated user
     if current_user:
-        logger.info(f"Resolved user via API key (user_id={current_user.get('id')})")
-        notes.append("Resolved via API-key authentication.")
+        logger.info(f"Logged in using API-key authentication (user_id={current_user.get('id')})")
+        notes.append("Logged in using API-key authentication")
         return current_user, notes
 
     # 4) No valid identity
@@ -91,15 +92,12 @@ async def get_current_user(
     api_key: Optional[str] = Security(api_key_header),
     supabase: Client = Depends(get_supabase),
 ):
-    """
-    Resolve current user by API key. If no API key is provided, return None (unauthenticated).
-    """
     if not api_key:
         return None
 
     api_key_hash = hash_api_key(api_key)
     try:
-        result = (
+        result = with_retry(lambda:
             supabase.table("users")
             .select("id, default_priority, provided_user_id, type")
             .eq("api_key_hash", api_key_hash)
@@ -109,9 +107,12 @@ async def get_current_user(
         if result.data:
             return result.data
         raise HTTPException(status_code=403, detail="Invalid API key")
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Auth error: {str(e)}")
-        raise HTTPException(status_code=403, detail="Invalid API key")
+        # Any unexpected → 503/504 is handled by db_guard already; fallback 503:
+        raise HTTPException(status_code=503, detail="Auth unavailable")
 
 
 async def require_api_key(current_user=Depends(get_current_user)):

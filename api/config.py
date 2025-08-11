@@ -24,6 +24,8 @@ class Settings(BaseSettings):
 
     # Other
     debug: bool = os.getenv("DEBUG", "true").lower() == "true"
+    db_retry_attempts: int = int(os.getenv("DB_RETRY_ATTEMPTS", "3"))
+    db_retry_backoff_ms: int = int(os.getenv("DB_RETRY_BACKOFF_MS", "150"))
 
     class Config:
         env_file = ".env"

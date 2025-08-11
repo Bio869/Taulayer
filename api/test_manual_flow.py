@@ -3,6 +3,23 @@ import time
 
 TIMEOUT = 12  # seconds
 
+
+# pseudo-test idea: monkeypatch the supabase client to raise timeouts
+class FakeTable:
+    def select(self, *a, **k): return self
+    def eq(self, *a, **k): return self
+    def single(self): return self
+    def execute(self):  # simulate timeout
+        import httpx
+        raise httpx.ReadTimeout("simulated read timeout")
+
+def fake_get_supabase():
+    class FakeClient:
+        def table(self, *_): return FakeTable()
+    return FakeClient()
+
+# Then inject fake_get_supabase via dependency_overrides in FastAPI test client
+
 # ─── Config ───────────────────────────────────────────────────────────────
 API_BASE = "https://taulayer-api.onrender.com/api"
 POST_URL = f"{API_BASE}/requests"
@@ -161,6 +178,8 @@ def run_tests():
     print("\n============== Done ==============")
     if canonical_user_id:
         print(f"Canonical user_id confirmed: {canonical_user_id}")
+
+    
 
 if __name__ == "__main__":
     run_tests()
