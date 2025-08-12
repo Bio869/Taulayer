@@ -207,6 +207,14 @@ def run():
         print(f"[{r['uid']}] POST {r['post_status']} ({r['post_ms']:.1f} ms) → rid={r['rid']} "
               f"| final={r['final_status']} ({(r['get_ms'] or 0):.1f} ms) | user_id={r['user_id']}")
 
+    # Latency percentiles
+    post_times = [r["post_ms"] for r in results if isinstance(r.get("post_ms"), (int, float))]
+    get_times  = [r["get_ms"]  for r in results if isinstance(r.get("get_ms"),  (int, float))]
+
+    print("\n==== Latency summary (ms) ====")
+    _summarize_latencies("POST", post_times)
+    _summarize_latencies("GET (poll to final)", get_times)
+
     # Consistency: each provided_user_id → exactly one user_id
     by_uid = defaultdict(set)
     for r in results:
