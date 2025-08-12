@@ -227,6 +227,25 @@ def run_suggestions_test():
     else:
         print("⚠️ Expected 200 from POST (with suggestions), got", r.status_code)
 
+
+def run_too_long_prompt_test():
+    print("\n— POST too-long prompt (expect 413) —")
+    headers = {"X-Provided-User-Id": KNOWN_EXTERNAL_ID}
+    payload = {
+        "prompt": "x" * (12000 + 50),  # just over the limit
+        "priority": "low",
+    }
+    start = time.time()
+    r = requests.post(POST_URL, json=payload, headers=headers, timeout=TIMEOUT)
+    pretty("POST too-long prompt", r, start)
+    if r.status_code != 413:
+        print(f"⚠️ Expected 413, got {r.status_code}")
+    # ensure nothing was stored
+    rid = None
+    if r.headers.get("content-type","").startswith("application/json"):
+        rid = r.json().get("request_id")
+    verify_not_in_db(rid)
+
 # ─── 422 invalid payload test ─────────────────────────────────────────────
 def run_422_test():
     print("\n============== 422 Validation Test ==============")
@@ -308,6 +327,7 @@ def run_all():
     run_suggestions_test()
     run_422_test()
     run_type1_fault_tests()
+    run_too_long_prompt_test()
     # run_concurrency_check(8)  # uncomment to exercise parallel posts
 
 if __name__ == "__main__":
