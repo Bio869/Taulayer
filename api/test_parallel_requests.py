@@ -26,6 +26,14 @@ def _summarize_latencies(label, values_ms):
           f"p50={_fmt(p50)} ms | p95={_fmt(p95)} ms | "
           f"min={_fmt(min(values_ms))} ms | max={_fmt(max(values_ms))} ms")
 
+def _summarize_for(label, results, pred):
+    post = [r["post_ms"] for r in results if pred(r) and isinstance(r.get("post_ms"), (int, float))]
+    get  = [r["get_ms"]  for r in results if pred(r) and isinstance(r.get("get_ms"),  (int, float))]
+    print(f"\n— {label} —")
+    _summarize_latencies("POST", post)
+    _summarize_latencies("GET (poll to final)", get)
+
+
 # ─── Config ───────────────────────────────────────────────────────────────
 TIMEOUT = int(os.getenv("TAULAYER_TIMEOUT", "30"))  # read-timeout (s). Connect-timeout fixed at 5s below.
 API_BASE = os.getenv("TAULAYER_API_BASE", "https://taulayer-api.onrender.com/api")
@@ -144,8 +152,9 @@ def run():
     work = []
     for uid, base in active:
         for i in range(REQUESTS_PER_USER):
-            prompt = make_long(base) if (i % 2 == 1) else make_short(base)
-            work.append((uid, prompt))
+            is_long = (i % 2 == 1)
+            prompt = make_long(base) if is_long else make_short(base)
+            work.append((uid, prompt, "long" if is_long else "short"))
 
     total = len(work)
     print(f"\n==== Launching {total} requests in batches of {BATCH} "
@@ -155,7 +164,7 @@ def run():
     results = []
     lock = threading.Lock()
 
-    def worker(uid, prompt):
+    def worker(uid, prompt, tag):
         try:
             t_post = time.time()
             resp = post_request(uid, prompt)
@@ -178,6 +187,7 @@ def run():
             with lock:
                 results.append({
                     "uid": uid,
+                    "tag": tag,
                     "post_status": resp.status_code if resp else None,
                     "post_ms": post_ms,
                     "rid": rid,
@@ -187,12 +197,12 @@ def run():
                 })
         except Exception as e:
             with lock:
-                results.append({"uid": uid, "error": str(e)})
+                results.append({"uid": uid, "tag": tag, "error": str(e)})
 
     # Run in batches to avoid stampeding the server/DB
     for i in range(0, len(work), BATCH):
         chunk = work[i:i+BATCH]
-        threads = [threading.Thread(target=worker, args=(uid, prompt), daemon=True) for uid, prompt in chunk]
+        threads = [threading.Thread(target=worker, args=(uid, prompt, tag), daemon=True) for uid, prompt, tag in chunk]
         for t in threads: t.start()
         for t in threads: t.join()
 
@@ -214,6 +224,11 @@ def run():
     print("\n==== Latency summary (ms) ====")
     _summarize_latencies("POST", post_times)
     _summarize_latencies("GET (poll to final)", get_times)
+
+    _summarize_for("Short prompts", results, lambda r: r.get("tag") == "short")
+    _summarize_for("Long prompts",  results, lambda r: r.get("tag") == "long")
+    _summarize_for("Completed",     results, lambda r: r.get("final_status") == "completed")
+    _summarize_for("Suggestions",   results, lambda r: r.get("final_status") == "below_threshold_suggestions_sent")
 
     # Consistency: each provided_user_id → exactly one user_id
     by_uid = defaultdict(set)
