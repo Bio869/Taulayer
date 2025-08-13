@@ -1,14 +1,14 @@
 # api/services/worker.py
 import asyncio
 import os
-from api.services.scheduler import (
+from services.scheduler import (
     lease_jobs,
     complete_job,
     fail_and_reschedule,
     release_stale_locks,
 )
-from api.services.executor import execute_request_job
-from api.services.logger import log
+from services.executor import execute_request_job
+from services.logger import log
 
 WORKER_ID = os.getenv("HOSTNAME", "worker-1")
 SLEEP_IDLE_SEC = 0.5  # time to wait if no jobs found

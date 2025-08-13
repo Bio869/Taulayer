@@ -14,7 +14,7 @@ Required DB objects:
   - function public.jobs_lease(p_worker_id text, p_limit int, p_lock_expired_before timestamptz) RETURNS SETOF public.jobs
     (see SQL we shared earlier)
 
-Environment-driven knobs are read from api.config.settings (with safe defaults).
+Environment-driven knobs are read from config.settings (with safe defaults).
 """
 
 import logging
@@ -27,7 +27,7 @@ from typing import Any, Dict, List, Optional, Union
 logger = logging.getLogger(__name__)
 try:
     # Optional: if you have a structured logger helper
-    from api.services.logger import log as _structured_log
+    from services.logger import log as _structured_log
 except Exception:
     _structured_log = None
 
@@ -57,8 +57,8 @@ def enqueue_background_task(background_tasks: "BackgroundTasks", task_fn, *args,
 
 # -------- Durable queue: Supabase client & settings ---------------------------
 
-from api.db.dependencies import get_supabase
-from api.config import settings
+from db.dependencies import get_supabase
+from config import settings
 
 # Knobs (with safe defaults if missing in env)
 MAX_ATTEMPTS: int      = getattr(settings, "queue_max_attempts", 5)
