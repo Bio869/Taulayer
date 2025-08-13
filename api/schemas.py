@@ -1,14 +1,19 @@
 # api/schemas.py
+from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from datetime import datetime, timezone
 from typing import Optional, List, Literal, Dict, Any
-from datetime import datetime
 from uuid import UUID
 
-# Priority levels
+from pydantic import BaseModel, Field, field_validator, ConfigDict
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Type aliases / enums
+# ──────────────────────────────────────────────────────────────────────────────
+
 Priority = Literal["low", "medium", "high"]
 
-# Request statuses
 RequestStatus = Literal[
     "pending",
     "analyzing",
@@ -20,7 +25,24 @@ RequestStatus = Literal[
     "below_threshold_suggestions_sent",
 ]
 
-# A single suggestion object
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Utilities
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _to_utc(dt: Optional[datetime]) -> Optional[datetime]:
+    """Coerce datetimes to timezone-aware UTC; pass through None."""
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Suggestion object
+# ──────────────────────────────────────────────────────────────────────────────
+
 class Suggestion(BaseModel):
     title: str
     description: str
@@ -28,15 +50,54 @@ class Suggestion(BaseModel):
     priority: Optional[int] = None
     implementation_effort: Optional[str] = None
 
-# ─── Incoming payload ────────────────────────────────────────────────────────────
+    model_config = ConfigDict(extra="ignore")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Incoming payload (POST /requests)
+# ──────────────────────────────────────────────────────────────────────────────
+
 class RequestCreate(BaseModel):
+    """
+    Payload for POST /requests.
+    - 'scheduled_for' is preferred; legacy alias 'schedule_at' is also accepted.
+    """
     prompt: str
     priority: Optional[Priority] = "medium"
-    scheduled_for: Optional[datetime] = None
+    scheduled_for: Optional[datetime] = Field(
+        default=None,
+        description="UTC time to run later",
+        alias="schedule_at",
+    )
     metadata: Optional[Dict[str, Any]] = None
     user_id: Optional[UUID] = None
 
-# ─── Response after creation/analysis ────────────────────────────────────────────
+    model_config = ConfigDict(
+        populate_by_name=True,  # allow using either 'scheduled_for' or alias 'schedule_at'
+        extra="ignore",
+    )
+
+    @field_validator("scheduled_for", mode="before")
+    @classmethod
+    def _parse_and_normalize_scheduled_for(cls, v):
+        # Accept str/isoformat or datetime; normalize to UTC if provided.
+        if v is None:
+            return v
+        if isinstance(v, str):
+            try:
+                parsed = datetime.fromisoformat(v.replace("Z", "+00:00"))
+            except ValueError:
+                raise ValueError("scheduled_for must be ISO-8601 datetime (e.g., 2025-08-13T19:00:00Z)")
+            return _to_utc(parsed)
+        if isinstance(v, datetime):
+            return _to_utc(v)
+        raise ValueError("scheduled_for must be a datetime or ISO-8601 string")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Response after creation/analysis
+# ──────────────────────────────────────────────────────────────────────────────
+
 class RequestResponse(BaseModel):
     request_id: str
     status: RequestStatus
@@ -44,18 +105,32 @@ class RequestResponse(BaseModel):
     token_estimate: Optional[int] = None
     complexity_score: Optional[float] = None
     estimated_completion_time: Optional[datetime] = None
+    # For POST responses we build rich Suggestion objects
     suggestions: Optional[List[Suggestion]] = None
 
-# ─── Authenticated User Schema ────────────────────────────────────────────────
+    model_config = ConfigDict(extra="ignore")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Authenticated User Schema
+# ──────────────────────────────────────────────────────────────────────────────
+
 class UserSchema(BaseModel):
     id: str
     type: Literal["user prompt", "agent prompt", "other"]
     default_priority: Priority
-    provided_user_id: str
-    api_key_hash: Optional[str] = None  # Not returned in responses, only used for lookup
+    # DB uses external_id; keep alias for backward compatibility with provided_user_id
+    external_id: str = Field(..., alias="provided_user_id")
+    api_key_hash: Optional[str] = None  # not returned in responses
     created_at: datetime
 
-# ─── Full request detail (e.g. GET /api/requests/{id}) ─────────────────────────
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Full request detail (e.g., GET /api/requests/{id})
+# ──────────────────────────────────────────────────────────────────────────────
+
 class RequestDetail(BaseModel):
     id: str
     user_id: str
@@ -68,18 +143,36 @@ class RequestDetail(BaseModel):
     predicted_tokens: Optional[int] = None
     predicted_complexity: Optional[float] = None
 
-    # Embedding stored at analysis time
+    # Embedding snapshot at analysis time (if you store it here)
     vector_embedding: Optional[List[float]] = None
 
-    # If thresholds failed, a list of actionable suggestions
-    suggestions: Optional[List[Suggestion]] = None
+    # NOTE: In DB this is TEXT[]; for GET we surface List[str]
+    suggestions: Optional[List[str]] = None
 
     # Execution scheduling
     scheduled_for: Optional[datetime] = None
 
-    # Any error during analysis or execution
+    # Any error or note during analysis/execution
     request_note: Optional[str] = None
 
     # Lifecycle timestamps
     created_at: datetime
     updated_at: datetime
+
+    model_config = ConfigDict(extra="ignore")
+
+    @field_validator("scheduled_for", mode="before")
+    @classmethod
+    def _normalize_detail_scheduled_for(cls, v):
+        if v is None:
+            return v
+        if isinstance(v, str):
+            try:
+                parsed = datetime.fromisoformat(v.replace("Z", "+00:00"))
+            except ValueError:
+                # If it's coming from DB already in another string format, pass through
+                return v
+            return _to_utc(parsed)
+        if isinstance(v, datetime):
+            return _to_utc(v)
+        return v

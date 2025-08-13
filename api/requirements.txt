@@ -24,4 +24,7 @@ numpy>=1.26.0
 # Python library used to send HTTP requests easily — like GET, POST, PUT, DELETE, etc.
 requests>=2.31.0
 
+# Environment & settings
+pydantic==2.6.3
+
 
