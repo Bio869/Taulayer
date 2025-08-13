@@ -4,10 +4,10 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 from typing import Optional, Dict, List, Union, Any
+from uuid import UUID
 
 from fastapi import HTTPException
 from supabase import Client
-from uuid import UUID
 
 from services.logger import log_event
 from services.db_guard import with_retry
@@ -25,15 +25,17 @@ STATUS_BELOW_THRESHOLD = "below_threshold_suggestions_sent"
 
 # ── Time helpers ──────────────────────────────────────────────────────────────
 def _utcnow_iso() -> str:
+    """UTC now as ISO-8601 string"""
     return datetime.now(timezone.utc).isoformat()
-
 
 def _omit_none(d: Dict[str, Any]) -> Dict[str, Any]:
     """Return a copy of dict without None values (prevents overwriting with NULLs)."""
     return {k: v for k, v in d.items() if v is not None}
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Users
+# ──────────────────────────────────────────────────────────────────────────────
 
-# ── Users ─────────────────────────────────────────────────────────────────────
 def get_user_by_id(supabase: Client, user_id: UUID) -> Optional[Dict]:
     """
     Fetch a user by internal UUID. Returns a dict or None.
@@ -47,20 +49,19 @@ def get_user_by_id(supabase: Client, user_id: UUID) -> Optional[Dict]:
     )
     return (res.data or [None])[0]
 
-
 def get_user_by_external_id(supabase: Client, ext_id: str) -> Optional[Dict]:
     """
-    Fetch a user by external_id (mapped from X-Provided-User-Id).
+    Fetch a user by *provided_user_id* (maps from X-Provided-User-Id).
+    (Function name kept for compatibility.)
     """
     res = with_retry(lambda:
         supabase.table("users")
         .select("id, default_priority")
-        .eq("external_id", ext_id)
+        .eq("provided_user_id", ext_id)
         .limit(1)
         .execute()
     )
     return (res.data or [None])[0]
-
 
 def upsert_user_by_external_id(
     supabase: Client,
@@ -70,29 +71,37 @@ def upsert_user_by_external_id(
     email: Optional[str] = None,
 ) -> Optional[Dict]:
     """
-    Upsert a user by external_id and return their row.
+    Upsert a user by *provided_user_id* and return their row.
+    (Function name kept for compatibility.)
     """
-    row = {"external_id": ext_id, "type": user_type, "default_priority": default_priority}
+    row: Dict[str, Any] = {
+        "provided_user_id": ext_id,
+        "type": user_type,
+        "default_priority": default_priority,
+    }
     if email:
         row["email"] = email
 
     with_retry(lambda:
         supabase.table("users").upsert(
             row,
-            on_conflict="external_id",
+            on_conflict="provided_user_id",
         ).execute()
     )
+
     res = with_retry(lambda:
         supabase.table("users")
         .select("id, default_priority")
-        .eq("external_id", ext_id)
+        .eq("provided_user_id", ext_id)
         .single()
         .execute()
     )
     return res.data if res.data else None
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Requests
+# ──────────────────────────────────────────────────────────────────────────────
 
-# ── Requests ──────────────────────────────────────────────────────────────────
 def create_request(supabase: Client, user_id: str, prompt: str, priority: str) -> str:
     """
     Insert a new request row and move it from pending -> analyzing.
@@ -121,7 +130,6 @@ def create_request(supabase: Client, user_id: str, prompt: str, priority: str) -
     log_event("request_created", request_id, {"priority": priority})
     return request_id
 
-
 def set_request_status(supabase: Client, request_id: str, new_status: str) -> None:
     """
     Update status with a fresh updated_at.
@@ -132,7 +140,6 @@ def set_request_status(supabase: Client, request_id: str, new_status: str) -> No
             "updated_at": _utcnow_iso(),
         }).eq("id", request_id).execute()
     )
-
 
 def set_scheduled_for(supabase: Client, request_id: str, scheduled_for_iso: str) -> None:
     """
@@ -145,17 +152,14 @@ def set_scheduled_for(supabase: Client, request_id: str, scheduled_for_iso: str)
         }).eq("id", request_id).execute()
     )
 
-
 def set_notify_email(supabase: Client, request_id: str, email: Optional[str]) -> None:
     """
-    Store a per-request notify email if you added a requests.notify_email column.
+    Store a per-request notify email if requests.notify_email exists (TEXT, nullable).
     Falls back to request_note if the column doesn't exist.
     """
     if not email:
         return
-
     try:
-        # Attempt to write into a dedicated column if it exists
         with_retry(lambda:
             supabase.table("requests").update({
                 "notify_email": email,
@@ -163,9 +167,8 @@ def set_notify_email(supabase: Client, request_id: str, email: Optional[str]) ->
             }).eq("id", request_id).execute()
         )
     except Exception:
-        # Graceful fallback: append to request_note
+        # Graceful fallback: append into request_note
         update_request_note(supabase, request_id, f"notify:{email}")
-
 
 def update_after_analysis(
     supabase: Client,
@@ -189,7 +192,7 @@ def update_after_analysis(
     }
 
     if suggestions:
-        # DB column is TEXT[]; pass a list of strings
+        # DB column is JSONB — passing a Python list is correct
         update_raw["suggestions"] = [str(s) for s in suggestions]
 
     update = _omit_none(update_raw)
@@ -198,7 +201,6 @@ def update_after_analysis(
         supabase.table("requests").update(update).eq("id", request_id).execute()
     )
     log_event("analysis_complete", request_id, {"status": new_status})
-
 
 def update_request_note(
     supabase: Client,
@@ -210,11 +212,7 @@ def update_request_note(
     Accepts a string or list of strings. Validates the request belongs to a verified user.
     """
     # normalize to list[str]
-    if isinstance(notes, str):
-        notes_list = [notes]
-    else:
-        notes_list = [n for n in notes if n]
-
+    notes_list = [notes] if isinstance(notes, str) else [n for n in notes if n]
     if not notes_list:
         return
 
@@ -234,7 +232,7 @@ def update_request_note(
     # append rather than overwrite
     existing = row.get("request_note") or ""
     to_append = "\n".join(notes_list)
-    new_note = (existing + ("\n" if existing and to_append else "") + to_append)
+    new_note = existing + ("\n" if existing and to_append else "") + to_append
 
     with_retry(lambda:
         supabase.table("requests").update({
@@ -242,7 +240,6 @@ def update_request_note(
             "updated_at": _utcnow_iso(),
         }).eq("id", request_id).execute()
     )
-
 
 def finalize_execution(
     supabase: Client,
@@ -266,7 +263,11 @@ def finalize_execution(
     # If you stored a snapshot embedding on the request, carry it into vector_index
     try:
         embedding_result = with_retry(lambda:
-            supabase.table("requests").select("vector_embedding").eq("id", request_id).single().execute()
+            supabase.table("requests")
+            .select("vector_embedding")
+            .eq("id", request_id)
+            .single()
+            .execute()
         )
         if embedding_result.data and embedding_result.data.get("vector_embedding") is not None:
             vector_insert["vector_embedding"] = embedding_result.data["vector_embedding"]
@@ -280,11 +281,12 @@ def finalize_execution(
     )
 
     # Flip request status and set executed_at now (only at completion)
+    now = _utcnow_iso()
     with_retry(lambda:
         supabase.table("requests").update({
             "status": STATUS_COMPLETED if success else STATUS_FAILED,
-            "executed_at": _utcnow_iso(),
-            "updated_at": _utcnow_iso(),
+            "executed_at": now,
+            "updated_at": now,
         }).eq("id", request_id).execute()
     )
 

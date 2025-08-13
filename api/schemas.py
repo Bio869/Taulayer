@@ -7,7 +7,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 
-
 # ──────────────────────────────────────────────────────────────────────────────
 # Type aliases / enums
 # ──────────────────────────────────────────────────────────────────────────────
@@ -25,7 +24,6 @@ RequestStatus = Literal[
     "below_threshold_suggestions_sent",
 ]
 
-
 # ──────────────────────────────────────────────────────────────────────────────
 # Utilities
 # ──────────────────────────────────────────────────────────────────────────────
@@ -38,9 +36,8 @@ def _to_utc(dt: Optional[datetime]) -> Optional[datetime]:
         return dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc)
 
-
 # ──────────────────────────────────────────────────────────────────────────────
-# Suggestion object
+# Suggestion object (rich shape for POST responses)
 # ──────────────────────────────────────────────────────────────────────────────
 
 class Suggestion(BaseModel):
@@ -51,7 +48,6 @@ class Suggestion(BaseModel):
     implementation_effort: Optional[str] = None
 
     model_config = ConfigDict(extra="ignore")
-
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Incoming payload (POST /requests)
@@ -93,9 +89,8 @@ class RequestCreate(BaseModel):
             return _to_utc(v)
         raise ValueError("scheduled_for must be a datetime or ISO-8601 string")
 
-
 # ──────────────────────────────────────────────────────────────────────────────
-# Response after creation/analysis
+# Response after creation/analysis (POST /requests)
 # ──────────────────────────────────────────────────────────────────────────────
 
 class RequestResponse(BaseModel):
@@ -110,7 +105,6 @@ class RequestResponse(BaseModel):
 
     model_config = ConfigDict(extra="ignore")
 
-
 # ──────────────────────────────────────────────────────────────────────────────
 # Authenticated User Schema
 # ──────────────────────────────────────────────────────────────────────────────
@@ -119,13 +113,15 @@ class UserSchema(BaseModel):
     id: str
     type: Literal["user prompt", "agent prompt", "other"]
     default_priority: Priority
-    # DB uses external_id; keep alias for backward compatibility with provided_user_id
-    external_id: str = Field(..., alias="provided_user_id")
+    # DB column is provided_user_id; accept 'external_id' as an alias for input only
+    provided_user_id: str = Field(..., alias="external_id")
     api_key_hash: Optional[str] = None  # not returned in responses
     created_at: datetime
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
-
+    model_config = ConfigDict(
+        extra="ignore",
+        populate_by_name=True,  # honor the alias for inbound payloads
+    )
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Full request detail (e.g., GET /api/requests/{id})
@@ -146,11 +142,14 @@ class RequestDetail(BaseModel):
     # Embedding snapshot at analysis time (if you store it here)
     vector_embedding: Optional[List[float]] = None
 
-    # NOTE: In DB this is TEXT[]; for GET we surface List[str]
+    # In DB this is JSONB (array). We surface as List[str] on GET.
     suggestions: Optional[List[str]] = None
 
     # Execution scheduling
     scheduled_for: Optional[datetime] = None
+
+    # Per-request notify email (nullable)
+    notify_email: Optional[str] = None
 
     # Any error or note during analysis/execution
     request_note: Optional[str] = None
