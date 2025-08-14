@@ -180,10 +180,9 @@ async def create_request(
     tips = suggester.generate_suggestions(request.prompt)
     request_handler.update_after_analysis(
         supabase,
-        request_id,
-        predictions,
-        "below_threshold_suggestions_sent",
-        suggestions=tips,
+        request_id=request_id,
+        predictions=predictions,
+        new_status="sent_to_execution",   # external contract remains
     )
     suggestion_objs = [Suggestion(title=tip, description=tip) for tip in tips]
 
