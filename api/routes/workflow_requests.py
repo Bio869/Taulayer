@@ -78,22 +78,30 @@ async def create_request(
         priority=priority,
     )
 
-    # Optional: store notify email hint if provided in metadata
-    notify_email = None
+    # ── Notify handling (verified email only) ─────────────────────────────────
+    # Clients may signal intent via metadata.notify / notify_me, but they cannot
+    # supply an arbitrary email. We only use the verified email on the user row.
+    wants_notify = False
     if request.metadata and isinstance(request.metadata, dict):
-        notify_email = request.metadata.get("notify_email")
-        if notify_email:
+        wants_notify = bool(request.metadata.get("notify")) or bool(request.metadata.get("notify_me"))
+
+    verified_email = None
+    if wants_notify:
+        verified_email = request_handler.get_user_email(supabase, user_id)
+        if verified_email:
+            # Persist to a dedicated column when available, and add a note for visibility
+            request_handler.set_notify_email(supabase, request_id, verified_email)
+            request_handler.update_request_note(supabase, request_id, f"notify:{verified_email}")
+        else:
+            # Proceed without email, but leave an audit hint for the UI/admins
             request_handler.update_request_note(
-                supabase, request_id, f"notify:{notify_email}"
+                supabase, request_id, "notify_requested_but_no_verified_email"
             )
 
+    # Always append identity resolution notes (separate from notify handling)
     if resolution_notes:
-        # append (don’t overwrite) resolution notes
-        request_handler.update_request_note(
-            supabase,
-            request_id,
-            (resolution_notes if not notify_email else f"{resolution_notes}; notify:{notify_email}")
-        )
+        request_handler.update_request_note(supabase, request_id, resolution_notes)
+
 
     # ── 3) Predict metrics ─────────────────────────────────────────────────────
     predictions = predictor.analyze_request(request.prompt)
@@ -125,6 +133,8 @@ async def create_request(
                 priority=priority,
                 run_at=scheduled_for,
             )
+            request_handler.set_scheduled_for(supabase, request_id, scheduled_for.isoformat())
+            
             # Return response indicating it’s going to execute (at/after scheduled time)
             return RequestResponse(
                 request_id=request_id,
@@ -193,6 +203,7 @@ async def create_request(
         latency_estimate=latency_ms,
         token_estimate=token_estimate,
         complexity_score=complexity,
+        
         suggestions=suggestion_objs,
     )
 

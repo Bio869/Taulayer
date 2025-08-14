@@ -152,6 +152,19 @@ def set_scheduled_for(supabase: Client, request_id: str, scheduled_for_iso: str)
         }).eq("id", request_id).execute()
     )
 
+def get_user_email(supabase: Client, user_id: str) -> Optional[str]:
+    res = with_retry(lambda:
+        supabase.table("users")
+        .select("email")
+        .eq("id", user_id)
+        .limit(1)
+        .single()
+        .execute()
+    )
+    row = res.data or {}
+    email = (row or {}).get("email")
+    return email if (isinstance(email, str) and "@" in email) else None
+
 def set_notify_email(supabase: Client, request_id: str, email: Optional[str]) -> None:
     """
     Store a per-request notify email if requests.notify_email exists (TEXT, nullable).
