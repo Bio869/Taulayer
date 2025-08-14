@@ -182,7 +182,7 @@ async def create_request(
         supabase,
         request_id=request_id,
         predictions=predictions,
-        new_status="sent_to_execution",   # external contract remains
+        new_status="below_threshold_suggestions_sent",   
     )
     suggestion_objs = [Suggestion(title=tip, description=tip) for tip in tips]
 
