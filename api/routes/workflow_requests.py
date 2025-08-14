@@ -112,7 +112,7 @@ async def create_request(
             supabase,
             request_id=request_id,
             predictions=predictions,
-            status="sent_to_execution",   # external contract remains
+            new_status="sent_to_execution",   # external contract remains
         )
 
         # If caller requested a future time, schedule durably
@@ -150,9 +150,9 @@ async def create_request(
                 metrics["executed_end"] = _utcnow().isoformat()
                 request_handler.finalize_execution(
                     supabase=supabase,
-                    request_id=request_id,
-                    metrics=metrics,
-                    success=True,
+                     request_id=request_id,
+                     execution_metrics=metrics,  
+                     success=True,
                 )
 
             scheduler.enqueue_background_task(background_tasks, _dummy_llm_execution)
