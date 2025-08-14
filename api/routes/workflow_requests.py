@@ -7,6 +7,7 @@ from typing import Optional, Dict, Any
 
 from fastapi import APIRouter, Depends, BackgroundTasks, Header, HTTPException
 from supabase import Client
+from fastapi.responses import JSONResponse
 
 from auth import get_current_user, resolve_user_identity
 from db.dependencies import get_supabase
@@ -47,9 +48,32 @@ async def create_request(
 
     # ── 0) Prompt guards ───────────────────────────────────────────────────────
     if not request.prompt or len(request.prompt) < settings.prompt_min_chars:
-        raise HTTPException(status_code=422, detail="Prompt is required")
+         # Keep this as a 422 with a simple, clear message
+        return JSONResponse(
+            status_code=422,
+            content={
+                "status": "error",
+                "error": "Prompt is required",
+                "hint": f"Add at least {settings.prompt_min_chars} characters of detail."
+          },
+        )
+    # If prompt is too long, return a 413 with helpful next steps
     if len(request.prompt) > settings.prompt_max_chars:
-        raise HTTPException(status_code=413, detail=f"Prompt too long (max {settings.prompt_max_chars} chars)")
+    # More helpful 413 with next steps
+        return JSONResponse(
+            status_code=413,
+            content={
+                "status": "error",
+                "error": f"Prompt too long (max {settings.prompt_max_chars} chars).",
+                "your_length": len(request.prompt),
+                "max_chars": settings.prompt_max_chars,
+                "how_to_fix": [
+                    "Shorten your request (remove boilerplate or unrelated context).",
+                    "Split into multiple smaller requests.",
+                    "If this is heavy work, resubmit with a shorter prompt and set a future 'scheduled_for' time.",
+                ],
+            },
+        )
 
     # Debug-only fault injection
     if settings.debug:
