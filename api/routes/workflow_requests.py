@@ -182,7 +182,8 @@ async def create_request(
         supabase,
         request_id=request_id,
         predictions=predictions,
-        new_status="below_threshold_suggestions_sent",   
+        new_status="below_threshold_suggestions_sent",
+        suggestions=tips,
     )
     suggestion_objs = [Suggestion(title=tip, description=tip) for tip in tips]
 

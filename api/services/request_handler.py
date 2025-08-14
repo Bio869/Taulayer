@@ -123,7 +123,7 @@ def create_request(supabase: Client, user_id: str, prompt: str, priority: str) -
     with_retry(lambda:
         supabase.table("requests").update({
             "status": STATUS_ANALYZING,
-            "updated_at": now,
+            "updated_at": _utcnow_iso(),
         }).eq("id", request_id).execute()
     )
 
@@ -185,14 +185,14 @@ def update_after_analysis(
         "predicted_latency": int(predictions.get("latency_ms", 0)),
         "predicted_tokens": int(predictions.get("total_tokens", 0)),
         "predicted_complexity": float(predictions.get("complexity_score", 0.0)),
-        # Optional: if you snapshot the embedding on analysis — only include when present
+        # Optional: snapshot embedding if present
         "vector_embedding": predictions.get("vector_embedding"),
         "status": new_status,
         "updated_at": _utcnow_iso(),
     }
 
-    if suggestions:
-        # DB column is JSONB — passing a Python list is correct
+    # Write suggestions when explicitly provided (even if empty list)
+    if suggestions is not None:
         update_raw["suggestions"] = [str(s) for s in suggestions]
 
     update = _omit_none(update_raw)
