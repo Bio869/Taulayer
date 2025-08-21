@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -38,42 +39,38 @@ interface SignInDialogProps {
 }
 
 export const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
+  const navigate = useNavigate(); // ✅ inside component
   const [isLoading, setIsLoading] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<SignInFormData>({
     resolver: zodResolver(signInSchema),
-    defaultValues: {
-      username: "",
-      password: "",
-    },
+    defaultValues: { username: "", password: "" },
   });
 
   const forgotPasswordForm = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
-    defaultValues: {
-      email: "",
-    },
+    defaultValues: { email: "" },
   });
 
-  const onSubmit = async (data: SignInFormData) => {
+  const onSubmit = async (_data: SignInFormData) => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      // Mock API delay
+      await new Promise((r) => setTimeout(r, 1000));
+
       toast({
         title: "Sign In Successful",
         description: "Welcome to τLayer Dashboard!",
       });
-      
+
       onOpenChange(false);
       form.reset();
-      
-      // Redirect to dashboard
-      window.location.href = '/dashboard';
-    } catch (error) {
+
+      // ✅ Use router navigation (respects basename in <BrowserRouter basename={...}>)
+      navigate("/dashboard", { replace: true });
+    } catch {
       toast({
         title: "Error",
         description: "Something went wrong. Please try again.",
@@ -87,18 +84,15 @@ export const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
   const onForgotPasswordSubmit = async (data: ForgotPasswordFormData) => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise((r) => setTimeout(r, 1000));
       toast({
         title: "Password Reset Email Sent",
         description: `Password reset instructions have been sent to ${data.email}.`,
       });
-      
       onOpenChange(false);
       setIsForgotPassword(false);
       forgotPasswordForm.reset();
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Something went wrong. Please try again.",
@@ -109,22 +103,12 @@ export const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
     }
   };
 
-  const handleForgotPassword = () => {
-    setIsForgotPassword(true);
-  };
-
-  const handleBackToSignIn = () => {
-    setIsForgotPassword(false);
-  };
-
   return (
-    <Dialog 
-      open={open} 
-      onOpenChange={(open) => {
-        onOpenChange(open);
-        if (!open) {
-          setIsForgotPassword(false);
-        }
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        onOpenChange(isOpen);
+        if (!isOpen) setIsForgotPassword(false);
       }}
     >
       <DialogContent className="sm:max-w-md">
@@ -133,7 +117,7 @@ export const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
             {isForgotPassword ? "Reset Your Password" : "Sign In to τLayer"}
           </DialogTitle>
         </DialogHeader>
-        
+
         {isForgotPassword ? (
           <Form {...forgotPasswordForm}>
             <form onSubmit={forgotPasswordForm.handleSubmit(onForgotPasswordSubmit)} className="space-y-6">
@@ -150,16 +134,14 @@ export const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
                   </FormItem>
                 )}
               />
-              
               <div className="flex flex-col space-y-4">
                 <Button type="submit" disabled={isLoading} className="w-full">
                   {isLoading ? "Sending..." : "Send Reset Instructions"}
                 </Button>
-                
                 <Button
                   type="button"
                   variant="ghost"
-                  onClick={handleBackToSignIn}
+                  onClick={() => setIsForgotPassword(false)}
                   className="text-sm text-muted-foreground hover:text-foreground"
                 >
                   Back to Sign In
@@ -183,7 +165,6 @@ export const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
                   </FormItem>
                 )}
               />
-              
               <FormField
                 control={form.control}
                 name="password"
@@ -197,16 +178,14 @@ export const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
                   </FormItem>
                 )}
               />
-              
               <div className="flex flex-col space-y-4">
                 <Button type="submit" disabled={isLoading} className="w-full">
                   {isLoading ? "Signing In..." : "Sign In"}
                 </Button>
-                
                 <Button
                   type="button"
                   variant="ghost"
-                  onClick={handleForgotPassword}
+                  onClick={() => setIsForgotPassword(true)}
                   className="text-sm text-muted-foreground hover:text-foreground"
                 >
                   Forgot your password?
