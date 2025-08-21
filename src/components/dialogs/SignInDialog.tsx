@@ -64,12 +64,15 @@ export const SignInDialog = ({ open, onOpenChange }: SignInDialogProps) => {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       toast({
-        title: "Sign In Submitted",
-        description: "Your credentials have been submitted successfully.",
+        title: "Sign In Successful",
+        description: "Welcome to τLayer Dashboard!",
       });
       
       onOpenChange(false);
       form.reset();
+      
+      // Redirect to dashboard
+      window.location.href = '/dashboard';
     } catch (error) {
       toast({
         title: "Error",

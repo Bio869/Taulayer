@@ -223,7 +223,7 @@ async def release_stale_locks() -> int:
         "locked_by": None,
         "locked_at": None,
         "run_at": _utcnow().isoformat(),
-    }).lte("locked_at", cutoff).eq("status", "running").execute()
+    }).lte("locked_at", cutoff).eq("status", "processing").execute()
     updated = len(res.data or [])
     _log("info", "release_stale_locks.result", updated=updated)
     return updated

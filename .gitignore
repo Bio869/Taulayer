@@ -35,6 +35,7 @@ api/**/__pycache__/
 
 # Python Virtual Environment
 venv/
+venv*/
 env/
 .venv/
 api/venv/
