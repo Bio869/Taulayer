@@ -11,7 +11,7 @@
   "lint": "eslint .",
   "preview": "vite preview",
   "predeploy": "vite build && shx cp dist/index.html dist/404.html",
-  "deploy": "gh-pages -d dist",
+  "deploy": "gh-pages -d dist -c taulayer.com",
   "server": "node src/server/email.cjs"
 },
   "dependencies": {
