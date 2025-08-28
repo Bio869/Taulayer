@@ -10,7 +10,7 @@
   "build:dev": "vite build --mode development",
   "lint": "eslint .",
   "preview": "vite preview",
-  "predeploy": "vite build && shx cp dist/index.html dist/404.html && shx cp CNAME dist/CNAME",
+  "predeploy": "vite build && shx cp dist/index.html dist/404.html && shx cp CNAME dist/CNAME && shx touch dist/.nojekyll",
   "deploy": "gh-pages -d dist",
   "server": "node src/server/email.cjs"
 },
