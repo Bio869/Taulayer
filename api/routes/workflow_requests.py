@@ -15,6 +15,8 @@ from logic import predictor, suggester
 from schemas import RequestCreate, RequestResponse, Suggestion
 from services import request_handler, scheduler
 from config import settings
+from services.logger import log_event
+
 
 router = APIRouter()
 
@@ -136,8 +138,22 @@ async def create_request(
 
     # ── 4) Threshold evaluation ────────────────────────────────────────────────
     decision = predictor.check_thresholds(predictions, priority)
-    now = _utcnow()
 
+    #dimension-aware decision log
+    exceeded = getattr(decision, "exceeded_dimensions", []) or []
+    log_event(
+        "threshold_decision",
+        request_id,
+        {
+            "priority": priority,
+            "predicted_tokens": token_estimate,
+            "predicted_latency_ms": latency_ms,
+            "predicted_complexity": complexity,
+            "exceeded_dimensions": exceeded,             # <-- the field you wanted
+            "decision": "approve" if decision.passed else "block",
+        },
+    )
+    
     if decision.passed:
         # Persist predictions + mark as moving to execution path
         request_handler.update_after_analysis(
@@ -150,7 +166,7 @@ async def create_request(
         # If caller requested a future time, schedule durably
         scheduled_for = _to_utc(request.scheduled_for)
 
-        if scheduled_for and scheduled_for > now:
+        if scheduled_for and scheduled_for > _utcnow():
             # Durable schedule for later using the jobs queue
             await scheduler.schedule_for_later(
                 request_id=request_id,
@@ -190,7 +206,7 @@ async def create_request(
                 )
 
             scheduler.enqueue_background_task(background_tasks, _dummy_llm_execution)
-            eta = now + timedelta(milliseconds=latency_ms + 300)
+            eta = _utcnow() + timedelta(milliseconds=latency_ms + 300)
         else:
             # Durable ASAP via jobs queue
             await scheduler.enqueue_job(
@@ -198,7 +214,7 @@ async def create_request(
                 priority=priority,
                 run_at=None,  # ASAP
             )
-            eta = now + timedelta(milliseconds=latency_ms)
+            eta = _utcnow() + timedelta(milliseconds=latency_ms)
 
         return RequestResponse(
             request_id=request_id,
