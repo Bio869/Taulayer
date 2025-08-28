@@ -1,5 +1,6 @@
 import { DataTable } from "@/components/dashboard/DataTable";
 import { ControlPanel } from "@/components/dashboard/ControlPanel";
+import { MetricsOverview } from "@/components/dashboard/MetricsOverview";
 import { useState } from "react";
 
 export interface DashboardFilters {
@@ -36,7 +37,10 @@ const Dashboard = () => {
         </div>
       </header>
       
-      <div className="container mx-auto px-6 py-8">
+      <div className="container mx-auto px-6 py-8 space-y-8">
+        {/* Metrics Overview */}
+        <MetricsOverview />
+        
         <div className="flex gap-8">
           {/* Main Content Area */}
           <div className="flex-1">
@@ -60,4 +64,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard; 
+export default Dashboard;
