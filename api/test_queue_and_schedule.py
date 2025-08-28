@@ -97,7 +97,7 @@ def test_queue_asap():
     assert final in ("completed", "sent_to_execution"), f"unexpected final status: {final}"
 
     # Optional: check jobs table. This will only be present if server decided it's "heavy".
-    jobs, err = _sb_get("jobs", {"requests_id": f"eq.{rid}"})
+    jobs, err = _sb_get("jobs", {"request_id": f"eq.{rid}"})
     if err:
         print("🔸 jobs check:", err)
     else:
@@ -144,7 +144,7 @@ def test_schedule_future_with_notify():
 
     # Optional DB checks (requires SB creds)
     # a) jobs exists with run_at ~= scheduled_for
-    jobs, err = _sb_get("jobs", {"requests_id": f"eq.{rid}"})
+    jobs, err = _sb_get("jobs", {"request_id": f"eq.{rid}"})
     if err:
         print("🔸 jobs check:", err)
     else:
