@@ -46,6 +46,7 @@ export const SignInDialog = ({
   const onSubmit = async ({ email }: SignInFormData) => {
     setIsLoading(true);
     try {
+      console.log('[SB OK?]', !!supabase, !!(supabase as any).auth);
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: { emailRedirectTo: getDashboardRedirect() },
