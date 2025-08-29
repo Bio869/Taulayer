@@ -185,6 +185,14 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                 aVal = a.estimated_latency_ms;
                 bVal = b.estimated_latency_ms;
                 break;
+              case 'total_cost_saved_usd':
+                aVal = a.total_cost_saved_usd;
+                bVal = b.total_cost_saved_usd;
+                break;
+              case 'total_time_saved_ms':
+                aVal = a.total_time_saved_ms;
+                bVal = b.total_time_saved_ms;
+                break;
               default:
                 aVal = a[sort.field as keyof DataRow];
                 bVal = b[sort.field as keyof DataRow];
@@ -281,27 +289,26 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
         <div className="rounded-lg border bg-card">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>User ID</TableHead>
-                <TableHead>Prompt Requests</TableHead>
-                <TableHead>Submitted Prompt</TableHead>
-                <TableHead>Quality</TableHead>
-                <TableHead>Model Name</TableHead>
-                <TableHead>Timestamp</TableHead>
-                <TableHead>Est. CPR</TableHead>
-                <TableHead>Est. Latency</TableHead>
-                <TableHead>Top Suggestions</TableHead>
-                <TableHead>New Cost</TableHead>
-                <TableHead>New Latency</TableHead>
-                <TableHead>New Quality</TableHead>
-                <TableHead>Time Saved</TableHead>
-                <TableHead>Cost Saved</TableHead>
-              </TableRow>
+            <TableRow>
+              <TableHead>User ID</TableHead>
+              <TableHead>Prompt Requests</TableHead>
+              <TableHead>Quality</TableHead>
+              <TableHead>Model Name</TableHead>
+              <TableHead>Timestamp</TableHead>
+              <TableHead>Est. CPR</TableHead>
+              <TableHead>Est. Latency</TableHead>
+              <TableHead>Top Suggestions</TableHead>
+              <TableHead>New Cost</TableHead>
+              <TableHead>New Latency</TableHead>
+              <TableHead>New Quality</TableHead>
+              <TableHead>Time Saved</TableHead>
+              <TableHead>Cost Saved</TableHead>
+            </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={14} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={13} className="text-center py-8 text-muted-foreground">
                     No data yet. Try adjusting filters or refresh.
                   </TableCell>
                 </TableRow>
@@ -359,28 +366,6 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                           variant="ghost"
                           size="sm"
                           onClick={() => copyToClipboard(row.prompt_request, "Prompt")}
-                          className="mt-1"
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
-                      </TableCell>
-                      <TableCell className="max-w-xs">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="cursor-pointer">
-                              <p className="line-clamp-2 text-sm">
-                                {row.submitted_prompt}
-                              </p>
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-md">
-                            <p>{row.submitted_prompt}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => copyToClipboard(row.submitted_prompt, "Submitted Prompt")}
                           className="mt-1"
                         >
                           <Copy className="h-3 w-3" />

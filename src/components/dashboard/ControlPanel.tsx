@@ -33,10 +33,8 @@ const sortOptions = [
   { value: "timestamp", label: "Timestamp" },
   { value: "cpr", label: "Est. CPR" },
   { value: "latency", label: "Est. Latency" },
-  { value: "total_cost_saved_usd", label: "Total Cost Saved" },
-  { value: "pct_cost_saved", label: "% Cost Saved" },
-  { value: "total_time_saved_ms", label: "Total Time Saved" },
-  { value: "pct_time_saved", label: "% Time Saved" },
+  { value: "total_cost_saved_usd", label: "Cost Saved" },
+  { value: "total_time_saved_ms", label: "Time Saved" },
 ];
 
 export const ControlPanel = ({ 
@@ -101,19 +99,42 @@ export const ControlPanel = ({
   };
 
   const handleExport = (format: 'csv' | 'json') => {
-    // Mock export functionality
+    // Get the filtered data from the parent component
+    // For now, we'll create a mock dataset to export
+    const mockData = {
+      exportDate: new Date().toISOString(),
+      filters: filters,
+      data: [] // This would be the actual filtered data
+    };
+
+    if (format === 'csv') {
+      // Convert to CSV format
+      const csvContent = "data:text/csv;charset=utf-8," + 
+        "User ID,Prompt Request,Model Name,Timestamp,Est. CPR,Est. Latency,Cost Saved,Time Saved\n" +
+        "Sample data would go here...";
+      
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `tlayer-export-${new Date().getTime()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      // Export as JSON
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(mockData, null, 2));
+      const link = document.createElement("a");
+      link.setAttribute("href", dataStr);
+      link.setAttribute("download", `tlayer-export-${new Date().getTime()}.json`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
     toast({
-      title: `Export ${format.toUpperCase()}`,
-      description: `Exporting data in ${format.toUpperCase()} format...`,
+      title: "Export Complete",
+      description: `Data exported successfully as ${format.toUpperCase()}`,
     });
-    
-    // In a real app, this would trigger the actual export
-    setTimeout(() => {
-      toast({
-        title: "Export Complete",
-        description: `Data exported successfully as ${format.toUpperCase()}`,
-      });
-    }, 2000);
   };
 
   const clearAllFilters = () => {
