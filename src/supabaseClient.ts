@@ -3,6 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+console.log('[SB] supabaseClient.ts loaded');
+console.log('[SB] URL present?', !!supabaseUrl);
+console.log('[SB] ANON present?', !!supabaseAnonKey);
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('[Supabase] Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY');
