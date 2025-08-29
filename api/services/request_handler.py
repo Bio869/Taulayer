@@ -37,12 +37,10 @@ def _omit_none(d: Dict[str, Any]) -> Dict[str, Any]:
 # ──────────────────────────────────────────────────────────────────────────────
 
 def get_user_by_id(supabase: Client, user_id: UUID) -> Optional[Dict]:
-    """
-    Fetch a user by internal UUID. Returns a dict or None.
-    """
+    """Fetch a user by internal UUID. Returns a dict or None."""
     res = with_retry(lambda:
         supabase.table("users")
-        .select("id, default_priority")
+        .select("id, email, client_name, provided_user_id, default_priority")
         .eq("id", str(user_id))
         .limit(1)
         .execute()
@@ -56,7 +54,7 @@ def get_user_by_external_id(supabase: Client, ext_id: str) -> Optional[Dict]:
     """
     res = with_retry(lambda:
         supabase.table("users")
-        .select("id, default_priority")
+        .select("id, email, client_name, provided_user_id, default_priority")
         .eq("provided_user_id", ext_id)
         .limit(1)
         .execute()
@@ -91,12 +89,58 @@ def upsert_user_by_external_id(
 
     res = with_retry(lambda:
         supabase.table("users")
-        .select("id, default_priority")
+        .select("id, email, client_name, provided_user_id, default_priority")
         .eq("provided_user_id", ext_id)
         .single()
         .execute()
     )
     return res.data if res.data else None
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Email-allowlist
+# ──────────────────────────────────────────────────────────────────────────────
+
+def get_user_by_email(supabase: Client, email: str) -> Optional[Dict]:
+    """Case-insensitive email lookup; existence == allowed."""
+    res = with_retry(lambda:
+        supabase.table("users")
+        .select("id, email, client_name, provided_user_id, default_priority")
+        .ilike("email", email)
+        .limit(1)
+        .execute()
+    )
+    return (res.data or [None])[0]
+
+def link_provided_user_id_if_missing(supabase: Client, user_id: str, provided_user_id: str) -> None:
+    """Attach provided_user_id the first time we see this identity."""
+    with_retry(lambda:
+        supabase.table("users")
+        .update({"provided_user_id": provided_user_id})
+        .eq("id", user_id)
+        .is_("provided_user_id", None)
+        .execute()
+    )
+
+def require_known_user_by_email(
+    supabase: Client,
+    email: Optional[str],
+    provided_user_id: Optional[str] = None,
+) -> Dict:
+    """Allow only if email exists in public.users; do NOT auto-create."""
+    if not email:
+        raise HTTPException(status_code=401, detail="Missing identity email")
+
+    user = get_user_by_email(supabase, email)
+    if not user:
+        raise HTTPException(status_code=403, detail="Access not enabled for this email")
+
+    if provided_user_id:
+        try:
+            link_provided_user_id_if_missing(supabase, user["id"], provided_user_id)
+        except Exception:
+            logger.debug("Optional provided_user_id link failed for user_id=%s", user["id"])
+    return user
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Requests

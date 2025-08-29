@@ -1,15 +1,12 @@
-# api/workflow_requests.py
-
+# api/routes/workflow_requests.py
 from __future__ import annotations
-
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
 
 from fastapi import APIRouter, Depends, BackgroundTasks, Header, HTTPException
-from supabase import Client
 from fastapi.responses import JSONResponse
+from supabase import Client
 
-from auth import get_current_user, resolve_user_identity
 from db.dependencies import get_supabase
 from logic import predictor, suggester
 from schemas import RequestCreate, RequestResponse, Suggestion
@@ -17,13 +14,14 @@ from services import request_handler, scheduler
 from config import settings
 from services.logger import log_event
 
+# NEW: Supabase JWT identity + email-allowlist guard
+from auth import get_identity
+from services.request_handler import require_known_user_by_email
 
 router = APIRouter()
 
-
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
-
 
 def _to_utc(dt: Optional[datetime]) -> Optional[datetime]:
     if dt is None:
@@ -32,16 +30,14 @@ def _to_utc(dt: Optional[datetime]) -> Optional[datetime]:
         return dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc)
 
-
 @router.post("/requests", response_model=RequestResponse)
 async def create_request(
     request: RequestCreate,
     background_tasks: BackgroundTasks,
-    current_user: Optional[Dict[str, Any]] = Depends(get_current_user),
     supabase: Client = Depends(get_supabase),
-    x_provided_user_id: Optional[str] = Header(None),
-    x_force_db_timeout: Optional[str] = Header(None),       # debug only
-    x_force_db_unavailable: Optional[str] = Header(None),   # debug only
+    ident = Depends(get_identity),                      # ← validated {user_id,email}
+    x_force_db_timeout: Optional[str] = Header(None),   # debug only
+    x_force_db_unavailable: Optional[str] = Header(None),  # debug only
 ):
     """
     Create a request -> analyze -> either (a) execute (immediate or scheduled)
@@ -50,18 +46,15 @@ async def create_request(
 
     # ── 0) Prompt guards ───────────────────────────────────────────────────────
     if not request.prompt or len(request.prompt) < settings.prompt_min_chars:
-         # Keep this as a 422 with a simple, clear message
         return JSONResponse(
             status_code=422,
             content={
                 "status": "error",
                 "error": "Prompt is required",
-                "hint": f"Add at least {settings.prompt_min_chars} characters of detail."
-          },
+                "hint": f"Add at least {settings.prompt_min_chars} characters of detail.",
+            },
         )
-    # If prompt is too long, return a 413 with helpful next steps
     if len(request.prompt) > settings.prompt_max_chars:
-    # More helpful 413 with next steps
         return JSONResponse(
             status_code=413,
             content={
@@ -77,24 +70,21 @@ async def create_request(
             },
         )
 
-    # Debug-only fault injection
+    # ── Debug-only fault injection ─────────────────────────────────────────────
     if settings.debug:
         if x_force_db_timeout == "1":
             raise HTTPException(status_code=504, detail="Upstream database timeout (simulated)")
         if x_force_db_unavailable == "1":
             raise HTTPException(status_code=503, detail="Database temporarily unavailable (simulated)")
 
-    # ── 1) Resolve identity (header > payload user_id > API key) ──────────────
-    try:
-        user_row, resolution_notes = resolve_user_identity(
-            supabase, request, current_user, x_provided_user_id
-        )
-    except HTTPException as e:
-        # Identity failure → do not persist anything
-        raise e
-
-    user_id = user_row["id"]
-    priority = request.priority or user_row.get("default_priority", "medium")
+    # ── 1) Identity: invite-only by email in public.users ─────────────────────
+    app_user = require_known_user_by_email(
+        supabase,
+        email=ident.email,
+        provided_user_id=ident.user_id,      # optional first-time link
+    )
+    user_id = app_user["id"]
+    priority = request.priority or app_user.get("default_priority", "medium")
 
     # ── 2) Insert request row (pending → analyzing) ────────────────────────────
     request_id = request_handler.create_request(
@@ -102,36 +92,24 @@ async def create_request(
         user_id=user_id,
         prompt=request.prompt,
         priority=priority,
+        # client_name=app_user.get("client_name"),  # uncomment when column exists on requests
     )
 
     # ── Notify handling (verified email only) ─────────────────────────────────
-    # Clients may signal intent via metadata.notify / notify_me, but they cannot
-    # supply an arbitrary email. We only use the verified email on the user row.
     wants_notify = False
     if request.metadata and isinstance(request.metadata, dict):
         wants_notify = bool(request.metadata.get("notify")) or bool(request.metadata.get("notify_me"))
 
-    verified_email = None
     if wants_notify:
         verified_email = request_handler.get_user_email(supabase, user_id)
         if verified_email:
-            # Persist to a dedicated column when available, and add a note for visibility
             request_handler.set_notify_email(supabase, request_id, verified_email)
             request_handler.update_request_note(supabase, request_id, f"notify:{verified_email}")
         else:
-            # Proceed without email, but leave an audit hint for the UI/admins
-            request_handler.update_request_note(
-                supabase, request_id, "notify_requested_but_no_verified_email"
-            )
-
-    # Always append identity resolution notes (separate from notify handling)
-    if resolution_notes:
-        request_handler.update_request_note(supabase, request_id, resolution_notes)
-
+            request_handler.update_request_note(supabase, request_id, "notify_requested_but_no_verified_email")
 
     # ── 3) Predict metrics ─────────────────────────────────────────────────────
     predictions = predictor.analyze_request(request.prompt)
-    # Normalized numbers we’ll reuse
     latency_ms = int(predictions.get("latency_ms", 0))
     token_estimate = int(predictions.get("total_tokens", 0))
     complexity = float(predictions.get("complexity_score", 0.0))
@@ -139,7 +117,6 @@ async def create_request(
     # ── 4) Threshold evaluation ────────────────────────────────────────────────
     decision = predictor.check_thresholds(predictions, priority)
 
-    #dimension-aware decision log
     exceeded = getattr(decision, "exceeded_dimensions", []) or []
     log_event(
         "threshold_decision",
@@ -149,33 +126,27 @@ async def create_request(
             "predicted_tokens": token_estimate,
             "predicted_latency_ms": latency_ms,
             "predicted_complexity": complexity,
-            "exceeded_dimensions": exceeded,             # <-- the field you wanted
+            "exceeded_dimensions": exceeded,
             "decision": "approve" if decision.passed else "block",
         },
     )
-    
+
     if decision.passed:
-        # Persist predictions + mark as moving to execution path
         request_handler.update_after_analysis(
             supabase,
             request_id=request_id,
             predictions=predictions,
-            new_status="sent_to_execution",   # external contract remains
+            new_status="sent_to_execution",
         )
 
-        # If caller requested a future time, schedule durably
         scheduled_for = _to_utc(request.scheduled_for)
-
         if scheduled_for and scheduled_for > _utcnow():
-            # Durable schedule for later using the jobs queue
             await scheduler.schedule_for_later(
                 request_id=request_id,
                 priority=priority,
                 run_at=scheduled_for,
             )
             request_handler.set_scheduled_for(supabase, request_id, scheduled_for.isoformat())
-            
-            # Return response indicating it’s going to execute (at/after scheduled time)
             return RequestResponse(
                 request_id=request_id,
                 status="sent_to_execution",
@@ -186,33 +157,28 @@ async def create_request(
                 suggestions=None,
             )
 
-        # Otherwise decide immediate path: short = BackgroundTasks; heavy = durable queue
-        # Heuristic: anything over ~2s should be durable to avoid tying it to the HTTP worker
         heavy_cutoff_ms = getattr(settings, "background_max_latency_ms", 2000)
-
         if latency_ms <= heavy_cutoff_ms:
-            # Fire-and-forget short task (best-effort)
             def _dummy_llm_execution():
                 import time, json
-                time.sleep(1)  # simulate a quick run
+                time.sleep(1)
                 with open("llm_fixed_answer.json") as f:
                     metrics = json.load(f)
                 metrics["executed_end"] = _utcnow().isoformat()
                 request_handler.finalize_execution(
                     supabase=supabase,
-                     request_id=request_id,
-                     execution_metrics=metrics,  
-                     success=True,
+                    request_id=request_id,
+                    execution_metrics=metrics,
+                    success=True,
                 )
 
             scheduler.enqueue_background_task(background_tasks, _dummy_llm_execution)
             eta = _utcnow() + timedelta(milliseconds=latency_ms + 300)
         else:
-            # Durable ASAP via jobs queue
             await scheduler.enqueue_job(
                 request_id=request_id,
                 priority=priority,
-                run_at=None,  # ASAP
+                run_at=None,
             )
             eta = _utcnow() + timedelta(milliseconds=latency_ms)
 
@@ -243,19 +209,14 @@ async def create_request(
         latency_estimate=latency_ms,
         token_estimate=token_estimate,
         complexity_score=complexity,
-        
         suggestions=suggestion_objs,
     )
-
 
 @router.get("/requests/{request_id}")
 async def get_request_status(
     request_id: str,
     supabase: Client = Depends(get_supabase),
 ):
-    """
-    Fetch request details suitable for clients (no embeddings).
-    """
     res = (
         supabase.table("requests")
         .select(
@@ -268,12 +229,8 @@ async def get_request_status(
         .single()
         .execute()
     )
-
     if not res.data:
         raise HTTPException(status_code=404, detail="Request not found")
-
     return res.data
 
-
-# Helpful log so you know the router loaded in dev
 print("✅ workflow_requests router successfully loaded")

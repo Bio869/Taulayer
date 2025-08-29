@@ -1,10 +1,8 @@
 # api/schemas.py
 from __future__ import annotations
-
 from datetime import datetime, timezone
 from typing import Optional, List, Literal, Dict, Any
 from uuid import UUID
-
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -113,15 +111,29 @@ class UserSchema(BaseModel):
     id: str
     type: Literal["user prompt", "agent prompt", "other"]
     default_priority: Priority
+
     # DB column is provided_user_id; accept 'external_id' as an alias for input only
     provided_user_id: str = Field(..., alias="external_id")
-    api_key_hash: Optional[str] = None  # not returned in responses
+
+    # New, optional tenancy & access controls
+    client_name: Optional[str] = None         # <-- newly added column
+
+    api_key_hash: Optional[str] = None        # not returned in responses
     created_at: datetime
 
     model_config = ConfigDict(
         extra="ignore",
         populate_by_name=True,  # honor the alias for inbound payloads
     )
+
+
+# Optional: a trimmed response shape for the frontend (no sensitive fields)
+class UserPublic(BaseModel):
+    id: str
+    email: Optional[str] = None
+    client_name: Optional[str] = None
+    created_at: datetime
+    model_config = ConfigDict(extra="ignore")
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Full request detail (e.g., GET /api/requests/{id})
