@@ -1,4 +1,4 @@
-# requirements.txt
+# api\requirements.txt
 
 # Core packaging
 setuptools>=65.0.0
@@ -27,10 +27,7 @@ requests>=2.31.0
 # Environment & settings
 pydantic==2.6.3
 
-# JWT handling
-PyJWT>=2.8.0
-
-# Retry logic
+# api/requirements.txt
+PyJWT==2.10.1
 httpx>=0.24
-
 
