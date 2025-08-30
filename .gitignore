@@ -41,6 +41,8 @@ env/
 .venv/
 api/venv/
 api/env/
+api/venv311/
+venv311/
 
 # Environment variables
 .env
@@ -50,7 +52,7 @@ api/.env
 build/
 develop-eggs/
 dist/
-downloads/
+downloads/ 
 eggs/
 .eggs/
 lib/
