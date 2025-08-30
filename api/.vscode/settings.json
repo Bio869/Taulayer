@@ -1,7 +1,5 @@
 {
   "python.defaultInterpreterPath": "C:/Projects/Taulayer/api/venv311/Scripts/python.exe",
-  "python.analysis.extraPaths": [
-    "C:/Projects/Taulayer/api/venv311/Lib/site-packages"
-  ],
-  "python.analysis.typeCheckingMode": "basic"
+  "python.analysis.typeCheckingMode": "basic",
+  "python.terminal.activateEnvironment": true
 }
