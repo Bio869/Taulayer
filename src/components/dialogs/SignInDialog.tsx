@@ -3,7 +3,6 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-
 import {
   Dialog,
   DialogContent,
@@ -44,27 +43,37 @@ export const SignInDialog = ({
   });
 
   const onSubmit = async ({ email }: SignInFormData) => {
-    setIsLoading(true);
-    try {
-      console.log('[SB OK?]', !!supabase, !!(supabase as any).auth);
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: { emailRedirectTo: getDashboardRedirect() },
-      });
-      if (error) throw error;
-      toast({ title: "Magic link sent", description: "Check your inbox to sign in." });
-      onOpenChange(false);
-      form.reset();
-    } catch (e: any) {
-      toast({
-        title: "Sign-in failed",
-        description: e?.message ?? "Something went wrong.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+  const trimmed = email.trim();
+  setIsLoading(true);
+  try {
+    if (!supabase) {
+      toast({ title: "Auth unavailable", description: "Missing Supabase config.", variant: "destructive" });
+      return; // finally will still run
     }
-  };
+    const { error } = await supabase.auth.signInWithOtp({
+      email: trimmed,
+      options: {
+        emailRedirectTo: getDashboardRedirect(),
+        shouldCreateUser: false,
+      },
+    });
+    if (error) throw error;
+    toast({ title: "Magic link sent", description: "Check your inbox to sign in." });
+    onOpenChange(false);
+    form.reset();
+  } catch (e: any) {
+    toast({
+      title: "Sign-in failed",
+      description:
+        (e?.message?.includes("Signups not allowed") || e?.message?.includes("User not found"))
+          ? "This email isn’t invited yet. Ask an admin to invite you."
+          : (e?.message ?? "Something went wrong."),
+      variant: "destructive",
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <Dialog
@@ -89,7 +98,7 @@ export const SignInDialog = ({
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="you@company.com" autoComplete="email" {...field} />
+                    <Input type="email" placeholder="you@company.com" autoComplete="email" required disabled={isLoading} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
