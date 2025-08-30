@@ -1,5 +1,4 @@
 # api/auth.py
-
 from fastapi import HTTPException, Security, Depends
 from fastapi.security import APIKeyHeader
 from supabase import Client
@@ -120,3 +119,60 @@ async def require_api_key(current_user=Depends(get_current_user)):
     if not current_user:
         raise HTTPException(status_code=401, detail="API key required")
     return current_user
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Supabase JWT verification (JWKS)  — append to api/auth.py
+# ──────────────────────────────────────────────────────────────────────────────
+from typing import Optional, TypedDict
+import httpx, jwt
+from fastapi import Request, HTTPException, status
+from config import settings  # <-- your Settings with .supabase_url
+
+class Identity(TypedDict, total=False):
+    user_id: Optional[str]
+    email: Optional[str]
+
+_JWKS: dict | None = None
+
+async def _get_jwks() -> dict:
+    """Cache the project's JWKS so we don't fetch on every request."""
+    global _JWKS
+    if _JWKS:
+        return _JWKS
+    jwks_url = f"{settings.supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json"
+    async with httpx.AsyncClient(timeout=5) as c:
+        r = await c.get(jwks_url)
+        r.raise_for_status()
+        _JWKS = r.json()
+        return _JWKS
+
+async def get_identity(request: Request) -> Identity:
+    """
+    Verify Supabase RS256 JWT from Authorization: Bearer <token> using JWKS.
+    Returns {'user_id','email'} or raises 401.
+    """
+    auth = request.headers.get("authorization", "")
+    if not auth.lower().startswith("bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
+
+    token = auth.split(" ", 1)[1].strip()
+
+    try:
+        jwks = await _get_jwks()
+        # PyJWT >= 2.8 allows passing a JWKS dict to PyJWKClient
+        key = jwt.PyJWKClient(jwks).get_signing_key_from_jwt(token).key
+        claims = jwt.decode(
+            token,
+            key=key,
+            algorithms=["RS256"],
+            options={"verify_aud": False},  # set audience & True if you enforce aud
+        )
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Invalid token: {e}")
+
+    uid = claims.get("sub")
+    email = claims.get("email")
+    if not (uid or email):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
+
+    return Identity(user_id=uid, email=email)
