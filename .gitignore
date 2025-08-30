@@ -15,6 +15,8 @@ dist-ssr
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
 .idea
 .DS_Store
 *.suo
@@ -23,7 +25,7 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
-.env.local
+
 
 # Python
 __pycache__/
@@ -47,6 +49,7 @@ venv311/
 # Environment variables
 .env
 api/.env
+.env.local
 
 # Python build artifacts
 build/
