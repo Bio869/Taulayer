@@ -1,7 +1,10 @@
 import { DataTable } from "@/components/dashboard/DataTable";
 import { ControlPanel } from "@/components/dashboard/ControlPanel";
 import { MetricsOverview } from "@/components/dashboard/MetricsOverview";
+import { SettingsDialog } from "@/components/dashboard/SettingsDialog";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
 
 export interface DashboardFilters {
   userId: string;
@@ -33,7 +36,23 @@ const Dashboard = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
         <div className="container mx-auto px-6 py-4">
-          <h1 className="text-2xl font-bold text-foreground">τLayer Dashboard</h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-foreground">τLayer Dashboard</h1>
+            
+            <div className="flex items-center gap-4">
+              <div className="text-right text-sm">
+                <div className="font-medium text-foreground">Cybersecurity Corp</div>
+                <div className="text-muted-foreground">john.doe@company.com</div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <SettingsDialog />
+                <Button variant="outline" size="icon" title="Log Out">
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       </header>
       
