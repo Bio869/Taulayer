@@ -232,11 +232,16 @@ export const SettingsDialog = () => {
       </DialogTrigger>
       <DialogContent
         className="
-          z-50 p-0
-          w-[calc(100vw-1.25rem)] max-w-none sm:max-w-4xl
-          h-[92dvh] sm:h-auto
+          fixed z-50 p-0
+          right-3 sm:right-6
+          top-16 sm:top-6
+          left-auto
+          translate-x-0 translate-y-0
+          w-[calc(100vw-1rem)] max-w-[560px] sm:max-w-[640px]
+          h-[88dvh] sm:h-auto
           overflow-y-auto sm:rounded-xl
         "
+        style={{ transform: "none" }}   // cancel default centering transform
       >
         <DialogHeader className="px-5 py-4 border-b">
           <DialogTitle>Settings</DialogTitle>
