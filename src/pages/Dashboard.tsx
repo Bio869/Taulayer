@@ -57,17 +57,26 @@ const Dashboard = () => {
       </header>
       
       <div className="w-full px-6 py-8 space-y-8">
-        {/* Metrics Overview */}
-        <MetricsOverview />
-        
-        <div className="flex gap-8">
-          {/* Main Content Area */}
+        {/* Metrics Overview - slightly wider */}
+        <div className="max-w-[1600px] mx-auto">
+          <MetricsOverview />
+        </div>
+
+        {/* Table + Control Panel - capped for readability */}
+        <div className="max-w-7xl mx-auto flex gap-8">
           <div className="flex-1">
-            <DataTable 
-              filters={filters} 
-              refreshKey={refreshKey}
+            <DataTable filters={filters} refreshKey={refreshKey} />
+          </div>
+
+          <div className="w-80">
+            <ControlPanel
+              filters={filters}
+              onFiltersChange={handleFiltersChange}
+              onRefresh={handleRefresh}
             />
           </div>
+        </div>
+      </div>
           
           {/* Control Panel */}
           <div className="w-80">
