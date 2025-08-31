@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { TrendingUp, Clock, DollarSign, Target } from "lucide-react";
 
 interface MetricsData {
-  totalTimeSaved: number; // in milliseconds
-  totalCostSaved: number; // in USD
-  averageQualityLift: number; // percentage
+  totalTimeSaved: number; // ms
+  totalCostSaved: number; // USD
+  averageQualityLift: number; // %
   totalOptimizations: number;
 }
 
@@ -31,69 +31,99 @@ export const MetricsOverview = ({
     "ytd": "Year to Date"
   };
 
-  const currentData = data[selectedPeriod];
+  const current = data[selectedPeriod];
 
-  const formatTime = (ms: number): string => {
-    const hours = Math.floor(ms / (1000 * 60 * 60));
-    const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
-    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+  const formatTime = (ms: number) => {
+    const h = Math.floor(ms / 3_600_000);
+    const m = Math.floor((ms % 3_600_000) / 60_000);
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
   };
-
-  const formatCurrency = (amount: number): string => `$${amount.toFixed(2)}`;
+  const formatCurrency = (v: number) => `$${v.toFixed(2)}`;
 
   const metrics = [
-    { title: "Total Time Saved", value: formatTime(currentData.totalTimeSaved), icon: Clock, color: "text-blue-600", bgColor: "bg-blue-50", change: "+23% vs last period" },
-    { title: "Total Cost Saved", value: formatCurrency(currentData.totalCostSaved), icon: DollarSign, color: "text-green-600", bgColor: "bg-green-50", change: "+15% vs last period" },
-    { title: "Average Quality Lift", value: `${currentData.averageQualityLift}%`, icon: Target, color: "text-purple-600", bgColor: "bg-purple-50", change: "+12% vs last period" },
-    { title: "Total Optimizations", value: String(currentData.totalOptimizations), icon: TrendingUp, color: "text-orange-600", bgColor: "bg-orange-50", change: "+31% vs last period" }
+    { title: "Total Time Saved", value: formatTime(current.totalTimeSaved), icon: Clock, color: "text-blue-600", bg: "bg-blue-50", change: "+23% vs last period" },
+    { title: "Total Cost Saved", value: formatCurrency(current.totalCostSaved), icon: DollarSign, color: "text-green-600", bg: "bg-green-50", change: "+15% vs last period" },
+    { title: "Average Quality Lift", value: `${current.averageQualityLift}%`, icon: Target, color: "text-purple-600", bg: "bg-purple-50", change: "+12% vs last period" },
+    { title: "Total Optimizations", value: String(current.totalOptimizations), icon: TrendingUp, color: "text-orange-600", bg: "bg-orange-50", change: "+31% vs last period" }
   ];
 
   return (
-    <section aria-labelledby="overview-heading" className="space-y-3 sm:space-y-4">
-      {/* Header + period tabs: wrap gracefully on small screens */}
+    <section className="space-y-4">
+      {/* Header + period tabs */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="overview-heading" className="text-base sm:text-lg font-semibold text-foreground">
-          Performance Overview
-        </h2>
-        <div className="flex gap-1 rounded-lg bg-muted p-1">
-          {(["7d", "30d", "ytd"] as PeriodType[]).map((period) => (
+        <h2 className="text-lg font-semibold text-foreground">Performance Overview</h2>
+        <div className="hidden sm:flex gap-1 bg-muted p-1 rounded-lg">
+          {(["7d", "30d", "ytd"] as PeriodType[]).map((p) => (
             <Button
-              key={period}
-              variant={selectedPeriod === period ? "default" : "ghost"}
+              key={p}
+              variant={selectedPeriod === p ? "default" : "ghost"}
               size="sm"
-              onClick={() => setSelectedPeriod(period)}
-              className="px-2.5 sm:px-3 py-1 text-[11px] sm:text-xs"
+              onClick={() => setSelectedPeriod(p)}
+              className="px-3 py-1 text-xs"
             >
-              {periodLabels[period]}
+              {periodLabels[p]}
             </Button>
           ))}
         </div>
+
+        {/* Mobile: compact select instead of button group */}
+        <select
+          className="sm:hidden w-auto rounded-md border bg-background px-2 py-1 text-sm"
+          value={selectedPeriod}
+          onChange={(e) => setSelectedPeriod(e.target.value as PeriodType)}
+        >
+          <option value="7d">Past 7 Days</option>
+          <option value="30d">Past 30 Days</option>
+          <option value="ytd">Year to Date</option>
+        </select>
       </div>
 
-      {/* Cards grid: 1 → 2 → 4 cols, tighter gaps on small screens */}
-      <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4 xl:gap-6">
-        {metrics.map((metric, i) => (
-          <Card key={i} className="h-full transition-shadow hover:shadow-md">
-            <CardHeader className="p-4 sm:p-5 lg:p-6 pb-2 flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-[12px] sm:text-sm font-medium text-muted-foreground">
-                {metric.title}
-              </CardTitle>
-              <span className={`rounded-full ${metric.bgColor} p-1.5 sm:p-2`}>
-                <metric.icon className={`h-4 w-4 sm:h-5 sm:w-5 ${metric.color}`} />
+      {/* Desktop/tablet grid (unchanged for md+) */}
+      <div className="hidden md:grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {metrics.map((m, i) => (
+          <Card key={i} className="hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">{m.title}</CardTitle>
+              <span className={`p-2 rounded-full ${m.bg}`}>
+                <m.icon className={`h-4 w-4 ${m.color}`} />
               </span>
             </CardHeader>
-
-            <CardContent className="p-4 sm:p-5 lg:p-6 pt-0">
+            <CardContent>
               <div className="space-y-1">
-                {/* Value scales with clamp; tabular-nums improves number alignment */}
-                <div className="font-semibold leading-tight tabular-nums text-[clamp(1.125rem,1.5vw+0.8rem,1.75rem)]">
-                  {metric.value}
-                </div>
-                <p className="text-[11px] sm:text-xs text-muted-foreground">{metric.change}</p>
+                <div className="text-2xl font-bold tabular-nums text-foreground">{m.value}</div>
+                <p className="text-xs text-muted-foreground">{m.change}</p>
               </div>
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      {/* Mobile swipeable carousel */}
+      <div className="md:hidden -mx-6 px-6">
+        <div
+          className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2"
+          aria-label="Swipe metrics"
+        >
+          {metrics.map((m, i) => (
+            <Card
+              key={i}
+              className="snap-start shrink-0 min-w-[78%] hover:shadow-md transition-shadow"
+            >
+              <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
+                <CardTitle className="text-sm font-medium text-muted-foreground">{m.title}</CardTitle>
+                <span className={`rounded-full ${m.bg} p-2`}>
+                  <m.icon className={`h-4 w-4 ${m.color}`} />
+                </span>
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                <div className="space-y-1">
+                  <div className="text-xl font-semibold tabular-nums text-foreground">{m.value}</div>
+                  <p className="text-xs text-muted-foreground">{m.change}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     </section>
   );
