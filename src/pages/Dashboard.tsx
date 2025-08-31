@@ -79,7 +79,7 @@ const Dashboard = () => {
         
         <div className="flex gap-8">
           {/* Main Content Area */}
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <DataTable 
               filters={filters} 
               refreshKey={refreshKey}
