@@ -232,19 +232,19 @@ export const SettingsDialog = () => {
       </DialogTrigger>
       <DialogContent
         className="
-          z-50 p-0 overflow-y-auto sm:rounded-xl
-          /* size */
-          w-[calc(100vw-1rem)] max-w-[640px] sm:max-w-4xl
-          h-[92dvh] sm:h-auto
+          fixed z-50 p-0 overflow-y-auto sm:rounded-xl
 
           /* mobile: anchor top-right */
-          fixed left-auto right-3 top-16 translate-x-0 translate-y-0
+          left-auto right-3 top-16
+          w-[calc(100vw-1rem)] max-w-[640px]
+          h-[92dvh]
+          translate-x-0 translate-y-0
 
-          /* desktop+: restore standard centered dialog */
+          /* desktop+: restore centered modal */
           sm:left-1/2 sm:top-1/2 sm:right-auto
-          sm:translate-x-[-50%] sm:translate-y-[-50%]
+          sm:w-auto sm:max-w-4xl sm:h-auto
+          sm:-translate-x-1/2 sm:-translate-y-1/2
         "
-        style={{ transform: "none" }}  // ensure default centering transform is neutralized
       >
         <DialogHeader className="px-5 py-4 border-b">
           <DialogTitle>Settings</DialogTitle>
