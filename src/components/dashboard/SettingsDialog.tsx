@@ -85,7 +85,7 @@ function SettingsBody({
 }) {
   return (
     <Tabs defaultValue="user" className="w-full">
-      {/* Mobile: horizontal scroll; Desktop: 3-column grid */}
+      {/* Mobile: horizontal scroll; Desktop: 3 fixed triggers */}
       <TabsList className="mb-6 w-full overflow-x-auto whitespace-nowrap flex sm:grid sm:grid-cols-3">
         <TabsTrigger className="flex-1 sm:flex-none" value="user">User &amp; Account</TabsTrigger>
         <TabsTrigger className="flex-1 sm:flex-none" value="billing">Billing</TabsTrigger>
@@ -182,6 +182,7 @@ export const SettingsDialog = () => {
     localStorage.setItem("client-config", config);
     toast({ title: "Configuration Saved", description: "Your configuration has been saved successfully." });
   };
+
   const handleLoadConfig = () => {
     const saved = localStorage.getItem("client-config");
     if (saved) {
@@ -190,8 +191,8 @@ export const SettingsDialog = () => {
     }
   };
 
+  // Mobile → bottom sheet; Desktop → centered dialog
   if (isMobile) {
-    // Mobile: bottom sheet, nearly full height
     return (
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
@@ -222,7 +223,6 @@ export const SettingsDialog = () => {
     );
   }
 
-  // Desktop: regular dialog
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -232,16 +232,19 @@ export const SettingsDialog = () => {
       </DialogTrigger>
       <DialogContent
         className="
-          fixed z-50 p-0
-          right-3 sm:right-6
-          top-16 sm:top-6
-          left-auto
-          translate-x-0 translate-y-0
-          w-[calc(100vw-1rem)] max-w-[560px] sm:max-w-[640px]
-          h-[88dvh] sm:h-auto
-          overflow-y-auto sm:rounded-xl
+          z-50 p-0 overflow-y-auto sm:rounded-xl
+          /* size */
+          w-[calc(100vw-1rem)] max-w-[640px] sm:max-w-4xl
+          h-[92dvh] sm:h-auto
+
+          /* mobile: anchor top-right */
+          fixed left-auto right-3 top-16 translate-x-0 translate-y-0
+
+          /* desktop+: restore standard centered dialog */
+          sm:left-1/2 sm:top-1/2 sm:right-auto
+          sm:translate-x-[-50%] sm:translate-y-[-50%]
         "
-        style={{ transform: "none" }}   // cancel default centering transform
+        style={{ transform: "none" }}  // ensure default centering transform is neutralized
       >
         <DialogHeader className="px-5 py-4 border-b">
           <DialogTitle>Settings</DialogTitle>
