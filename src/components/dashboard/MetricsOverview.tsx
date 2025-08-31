@@ -51,8 +51,10 @@ export const MetricsOverview = ({
     <section className="space-y-4">
       {/* Header + period tabs */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold text-foreground">Performance Overview</h2>
-        <div className="hidden sm:flex gap-1 bg-muted p-1 rounded-lg">
+        <h2 className="font-semibold text-base sm:text-lg text-foreground">
+          Performance Overview
+        </h2>
+        <div className="hidden sm:flex gap-1 rounded-lg bg-muted p-1">
           {(["7d", "30d", "ytd"] as PeriodType[]).map((p) => (
             <Button
               key={p}
@@ -70,7 +72,7 @@ export const MetricsOverview = ({
         <select
           className="sm:hidden w-auto rounded-md border bg-background px-2 py-1 text-sm"
           value={selectedPeriod}
-          onChange={(e) => setSelectedPeriod(e.target.value as PeriodType)}
+          onChange={(e) => setSelectedPeriod(e.target.value as any)}
         >
           <option value="7d">Past 7 Days</option>
           <option value="30d">Past 30 Days</option>
