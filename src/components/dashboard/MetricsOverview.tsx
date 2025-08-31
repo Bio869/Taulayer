@@ -103,13 +103,23 @@ export const MetricsOverview = ({
       {/* Mobile swipeable carousel */}
       <div className="md:hidden -mx-6 px-6">
         <div
-          className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2"
+          className="
+            flex gap-4 overflow-x-auto pb-2
+            snap-x snap-mandatory
+            [scrollbar-width:none] [-ms-overflow-style:none]
+            [&::-webkit-scrollbar]:hidden
+            touch-pan-x
+          "
           aria-label="Swipe metrics"
         >
           {metrics.map((m, i) => (
             <Card
               key={i}
-              className="snap-start shrink-0 min-w-[78%] hover:shadow-md transition-shadow"
+              className="
+                snap-center shrink-0
+                basis-[85%] max-w-[480px]
+                hover:shadow-md transition-shadow
+              "
             >
               <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
                 <CardTitle className="text-sm font-medium text-muted-foreground">{m.title}</CardTitle>

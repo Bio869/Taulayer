@@ -232,18 +232,13 @@ export const SettingsDialog = () => {
       </DialogTrigger>
       <DialogContent
         className="
-          fixed z-50 p-0 overflow-y-auto sm:rounded-xl
+          z-50 p-0 overflow-y-auto sm:rounded-xl
 
-          /* mobile: anchor top-right */
-          left-auto right-3 top-16
-          w-[calc(100vw-1rem)] max-w-[640px]
-          h-[92dvh]
-          translate-x-0 translate-y-0
+          /* Mobile: fill most of the screen, centered by Radix */
+          w-[calc(100vw-1rem)] max-w-[95vw] max-h-[92dvh]
 
-          /* desktop+: restore centered modal */
-          sm:left-1/2 sm:top-1/2 sm:right-auto
-          sm:w-auto sm:max-w-4xl sm:h-auto
-          sm:-translate-x-1/2 sm:-translate-y-1/2
+          /* Desktop: progressively wider max widths, centered by default */
+          sm:w-auto sm:max-w-2xl md:max-w-3xl lg:max-w-4xl
         "
       >
         <DialogHeader className="px-5 py-4 border-b">
