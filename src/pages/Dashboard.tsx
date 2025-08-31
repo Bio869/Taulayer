@@ -35,22 +35,36 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
-        <div className="container mx-auto px-6 py-3 sm:py-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            {/* Title — smaller on mobile */}
-            <h1 className="font-bold leading-tight text-xl sm:text-2xl md:text-3xl text-foreground">
+        <div className="container mx-auto px-4 py-3">
+          {/* one-row header; prevent wrapping */}
+          <div className="flex items-center gap-2 flex-nowrap min-w-0">
+            {/* Title: no wrap, may truncate on very small widths */}
+            <h1 className="font-bold leading-tight text-xl sm:text-2xl text-foreground
+                          whitespace-nowrap truncate max-w-[46%]">
               τLayer Dashboard
             </h1>
 
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="text-right text-xs sm:text-sm">
-                <div className="font-medium text-foreground">Cybersecurity Corp</div>
-                <div className="text-muted-foreground">john.doe@company.com</div>
+            {/* Right side */}
+            <div className="ml-auto flex items-center gap-2 sm:gap-3 shrink-0">
+              {/* Company + email: allow truncation so row never wraps */}
+              <div className="text-right leading-tight text-xs sm:text-sm
+                              max-w-[42vw] sm:max-w-none overflow-hidden">
+                <div className="font-medium text-foreground truncate">
+                  Cybersecurity Corp
+                </div>
+                <div className="text-muted-foreground truncate">
+                  john.doe@company.com
+                </div>
               </div>
 
-              <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                 <SettingsDialog />
-                <Button variant="outline" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" title="Log Out">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  title="Log Out"
+                  className="h-8 w-8 sm:h-9 sm:w-9"
+                >
                   <LogOut className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
               </div>
@@ -65,7 +79,7 @@ const Dashboard = () => {
         
         <div className="flex gap-8">
           {/* Main Content Area */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1">
             <DataTable 
               filters={filters} 
               refreshKey={refreshKey}
