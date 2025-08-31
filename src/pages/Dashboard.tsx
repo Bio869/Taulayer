@@ -35,7 +35,7 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
-        <div className="container mx-auto px-6 py-4">
+        <div className="max-w-screen-2xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-foreground">τLayer Dashboard</h1>
 
@@ -58,17 +58,17 @@ const Dashboard = () => {
 
       <div className="w-full px-6 py-8 space-y-8">
         {/* Metrics Overview - slightly wider */}
-        <div className="max-w-[1600px] mx-auto">
+        <div className="max-w-screen-2xl mx-auto">
           <MetricsOverview />
         </div>
 
         {/* Table + Control Panel - capped for readability */}
-        <div className="max-w-7xl mx-auto flex gap-8">
-          <div className="flex-1">
+        <div className="max-w-screen-2xl mx-auto flex gap-8">
+          <div className="flex-1 min-w-0">
             <DataTable filters={filters} refreshKey={refreshKey} />
           </div>
 
-          <div className="w-80">
+          <div className="w-96">
             <ControlPanel
               filters={filters}
               onFiltersChange={handleFiltersChange}
