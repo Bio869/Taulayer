@@ -57,24 +57,26 @@ const Dashboard = () => {
       </header>
 
       <div className="w-full px-6 py-8 space-y-8">
-        {/* Metrics Overview - slightly wider */}
-        <div className="max-w-screen-2xl mx-auto">
+        {/* Metrics — narrower than total: right padding equals sidebar (20rem) + gap (2rem) */}
+        <div className="max-w-screen-2xl mx-auto xl:pr-[20rem]">
           <MetricsOverview />
         </div>
 
-        {/* Table + Control Panel - capped for readability */}
-        <div className="max-w-screen-2xl mx-auto flex gap-8">
+        {/* Main row: table + sidebar */}
+        <div className="max-w-screen-2xl mx-auto flex flex-col xl:flex-row gap-8 items-start">
+          {/* Table */}
           <div className="flex-1 min-w-0">
             <DataTable filters={filters} refreshKey={refreshKey} />
           </div>
 
-          <div className="w-80">
+          {/* Sidebar (fixed width on xl, full width on mobile) */}
+          <aside className="w-full xl:w-72 xl:flex-shrink-0">
             <ControlPanel
               filters={filters}
               onFiltersChange={handleFiltersChange}
               onRefresh={handleRefresh}
             />
-          </div>
+          </aside>
         </div>
       </div>
     </div>
