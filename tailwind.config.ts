@@ -1,3 +1,4 @@
+// tailwind.config.ts
 import type { Config } from "tailwindcss";
 import animate from "tailwindcss-animate";
 
@@ -15,10 +16,11 @@ export default {
 			center: true,
 			padding: '2rem',
 			screens: {
-				'2xl': '1400px'
-			}
+      			"2xl": "1500px",
+    		},
 		},
 		extend: {
+			screens: { '2xl': '1500px' },
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
