@@ -57,8 +57,9 @@ const Dashboard = () => {
       </header>
 
       <div className="w-full px-6 py-8 space-y-8">
-        {/* Metrics — narrower than total: right padding equals sidebar (20rem) + gap (2rem) */}
-        <div className="max-w-screen-2xl mx-auto xl:pr-[20rem]">
+        {/* Metrics — centered narrower than total:
+            sidebar(18rem) + gap(2rem) = 20rem → 10rem left + 10rem right */}
+        <div className="max-w-screen-2xl mx-auto xl:px-[10rem]">
           <MetricsOverview />
         </div>
 
@@ -69,7 +70,7 @@ const Dashboard = () => {
             <DataTable filters={filters} refreshKey={refreshKey} />
           </div>
 
-          {/* Sidebar (fixed width on xl, full width on mobile) */}
+          {/* Sidebar (18rem on xl, full width on mobile; no shrinking) */}
           <aside className="w-full xl:w-72 xl:flex-shrink-0">
             <ControlPanel
               filters={filters}
