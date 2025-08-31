@@ -233,12 +233,12 @@ export const SettingsDialog = () => {
       <DialogContent
         className="
           z-50 p-0 overflow-y-auto sm:rounded-xl
+          /* Mobile (xs–sm): compact, centered by Radix */
+          w-[min(24rem,calc(100vw-2rem))]   /* ~384px or viewport-2rem */
+          max-h-[85dvh]                     /* avoid cutting; scroll inside */
 
-          /* Mobile: fill most of the screen, centered by Radix */
-          w-[calc(100vw-1rem)] max-w-[95vw] max-h-[92dvh]
-
-          /* Desktop: progressively wider max widths, centered by default */
-          sm:w-auto sm:max-w-2xl md:max-w-3xl lg:max-w-4xl
+          /* Desktop and up: still centered, but not huge */
+          sm:w-[28rem] md:w-[32rem] lg:w-[36rem]
         "
       >
         <DialogHeader className="px-5 py-4 border-b">
