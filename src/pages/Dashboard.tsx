@@ -68,7 +68,7 @@ const Dashboard = () => {
             <DataTable filters={filters} refreshKey={refreshKey} />
           </div>
 
-          <div className="w-90">
+          <div className="w-84">
             <ControlPanel
               filters={filters}
               onFiltersChange={handleFiltersChange}
