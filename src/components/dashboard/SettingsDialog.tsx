@@ -234,7 +234,7 @@ export const SettingsDialog = () => {
         className="
           z-50 p-0 overflow-y-auto sm:rounded-xl
           w-[calc(100vw-1rem)] max-w-[95vw] max-h-[92dvh]
-          sm:w-auto sm:max-w-4xl md:max-w-5xl
+          sm:w-[min(90vw,40rem)] md:w-[min(90vw,48rem)] lg:w-[min(90vw,56rem)]  /* desktop widths */
         "
       >
         <DialogHeader className="px-5 py-4 border-b">

@@ -77,7 +77,7 @@ const Dashboard = () => {
         {/* Metrics Overview */}
         <MetricsOverview />
         
-        <div className="flex gap-8">
+        <div className="flex items-start gap-8">
           {/* Main Content Area */}
           <div className="flex-1">
             <DataTable 
