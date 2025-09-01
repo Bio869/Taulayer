@@ -94,7 +94,7 @@ export const MetricsOverview = ({
       </div>
 
       {/* Mobile-only carousel (scoped) */}
-      <div className="-mx-4 px-4">
+      <div className="block md:hidden -mx-4 px-4">
         <div
           className="
             flex gap-4 overflow-x-auto pb-2
