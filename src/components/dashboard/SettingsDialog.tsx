@@ -233,12 +233,12 @@ export const SettingsDialog = () => {
       <DialogContent
         className="
           z-50 p-0 overflow-y-auto
-          inset-0 w-screen h-[100dvh] rounded-none translate-x-0 translate-y-0
+          inset-0 h-[100dvh] rounded-none translate-x-0 translate-y-0
           sm:inset-auto sm:left-1/2 sm:top-1/2 sm:h-auto sm:rounded-xl
           sm:-translate-x-1/2 sm:-translate-y-1/2
 
           /* override base w-full max-w-lg on desktop */
-          sm:!max-w-none sm:!w-[48rem] md:!w-[56rem] lg:!w-[64rem]
+          sm:!max-w-none sm:!w-[42rem] md:!w-[50rem] lg:!w-[58rem]
         "
       >
         <DialogHeader className="px-5 py-4 border-b">
