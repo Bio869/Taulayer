@@ -286,8 +286,8 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
   return (
     <TooltipProvider>
       <div className="space-y-4">
-        <div className="relative max-h-[70vh] overflow-auto rounded-lg border bg-card">
-          <Table className="w-full">
+        <div className="relative rounded-lg border bg-card">
+          <Table className="w-full table-fixed border-separate border-spacing-0">
             <TableHeader
               className="
                 [&_th]:sticky [&_th]:top-0 [&_th]:z-20
