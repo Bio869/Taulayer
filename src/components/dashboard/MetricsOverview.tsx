@@ -101,7 +101,7 @@ export const MetricsOverview = ({
       </div>
 
       {/* Mobile swipeable carousel */}
-      <div className="md:hidden -mx-6 px-6">
+      <div className="md:hidden -mx-4 px-4">
         <div
           className="
             flex gap-4 overflow-x-auto pb-2
@@ -118,7 +118,7 @@ export const MetricsOverview = ({
               className="
                 snap-center shrink-0
                 basis-[85%] max-w-[480px]
-                hover:shadow-md transition-shadow
+                hover:shadow-md transition-shadow 
               "
             >
               <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
