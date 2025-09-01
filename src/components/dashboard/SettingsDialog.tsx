@@ -229,12 +229,12 @@ export const SettingsDialog = () => {
         <Button variant="outline" size="icon" title="Settings">
           <Settings className="h-4 w-4" />
         </Button>
-      </DialogTrigger>
+      </DialogTrigger>  
       <DialogContent
         className="
           z-50 p-0 overflow-y-auto sm:rounded-xl
-          w-[calc(100vw-1rem)] !max-w-[95vw] max-h-[92dvh]   /* phones: wide but inside viewport */
-          sm:w-auto sm:!max-w-3xl md:!max-w-4xl              /* desktop: wider, still centered */
+          w-[calc(100vw-1rem)] max-w-[95vw] max-h-[92dvh]
+          sm:w-auto sm:max-w-4xl md:max-w-5xl
         "
       >
         <DialogHeader className="px-5 py-4 border-b">
