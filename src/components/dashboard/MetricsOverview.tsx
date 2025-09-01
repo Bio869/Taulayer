@@ -4,14 +4,12 @@ import { Button } from "@/components/ui/button";
 import { TrendingUp, Clock, DollarSign, Target } from "lucide-react";
 
 interface MetricsData {
-  totalTimeSaved: number; // ms
-  totalCostSaved: number; // USD
-  averageQualityLift: number; // %
+  totalTimeSaved: number;
+  totalCostSaved: number;
+  averageQualityLift: number;
   totalOptimizations: number;
 }
-
 type PeriodType = "7d" | "30d" | "ytd";
-
 interface MetricsOverviewProps {
   data?: Record<PeriodType, MetricsData>;
 }
@@ -32,7 +30,6 @@ export const MetricsOverview = ({
   };
 
   const current = data[selectedPeriod];
-
   const formatTime = (ms: number) => {
     const h = Math.floor(ms / 3_600_000);
     const m = Math.floor((ms % 3_600_000) / 60_000);
@@ -51,9 +48,7 @@ export const MetricsOverview = ({
     <section className="space-y-4">
       {/* Header + period tabs */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-semibold text-base sm:text-lg text-foreground">
-          Performance Overview
-        </h2>
+        <h2 className="font-semibold text-base sm:text-lg text-foreground">Performance Overview</h2>
         <div className="hidden sm:flex gap-1 rounded-lg bg-muted p-1">
           {(["7d", "30d", "ytd"] as PeriodType[]).map((p) => (
             <Button
@@ -67,12 +62,10 @@ export const MetricsOverview = ({
             </Button>
           ))}
         </div>
-
-        {/* Mobile: compact select instead of button group */}
         <select
           className="sm:hidden w-auto rounded-md border bg-background px-2 py-1 text-sm"
           value={selectedPeriod}
-          onChange={(e) => setSelectedPeriod(e.target.value as any)}
+          onChange={(e) => setSelectedPeriod(e.target.value as PeriodType)}
         >
           <option value="7d">Past 7 Days</option>
           <option value="30d">Past 30 Days</option>
@@ -80,7 +73,7 @@ export const MetricsOverview = ({
         </select>
       </div>
 
-      {/* Desktop/tablet grid (unchanged for md+) */}
+      {/* Desktop/tablet grid — unaffected */}
       <div className="hidden md:grid grid-cols-2 lg:grid-cols-4 gap-4">
         {metrics.map((m, i) => (
           <Card key={i} className="hover:shadow-md transition-shadow">
@@ -100,14 +93,14 @@ export const MetricsOverview = ({
         ))}
       </div>
 
-      {/* Mobile swipeable carousel */}
-      <div className="md:hidden -mx-4 px-4">
+      {/* Mobile-only carousel (scoped) */}
+      <div className="block md:hidden -mx-2 px-2">
         <div
           className="
             flex gap-4 overflow-x-auto pb-2
             snap-x snap-mandatory
-            [scrollbar-width:none] [-ms-overflow-style:none]
-            [&::-webkit-scrollbar]:hidden
+            [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden
+            [scroll-padding-inline:8px]
             touch-pan-x
           "
           aria-label="Swipe metrics"
@@ -117,8 +110,8 @@ export const MetricsOverview = ({
               key={i}
               className="
                 snap-center shrink-0
-                basis-[85%] max-w-[480px]
-                hover:shadow-md transition-shadow 
+                basis-[90%] max-w-[520px]
+                hover:shadow-md transition-shadow
               "
             >
               <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
