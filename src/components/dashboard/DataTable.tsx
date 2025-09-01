@@ -286,9 +286,15 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
   return (
     <TooltipProvider>
       <div className="space-y-4">
-        <div className="rounded-lg border bg-card">
-          <Table>
-            <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="relative max-h-[70vh] overflow-auto rounded-lg border bg-card">
+          <Table className="w-full">
+            <TableHeader
+              className="
+                [&_th]:sticky [&_th]:top-0 [&_th]:z-20
+                [&_th]:bg-background/95 supports-[backdrop-filter]:[&_th]:bg-background/60
+                backdrop-blur
+              "
+            >
             <TableRow>
               <TableHead>User ID</TableHead>
               <TableHead>Prompt Requests</TableHead>
