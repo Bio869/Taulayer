@@ -117,7 +117,7 @@ export const MetricsOverview = ({
               key={i}
               className="
                 snap-center shrink-0
-                basis-[90%] max-w-[520px]
+                basis-[85%] max-w-[480px]
                 hover:shadow-md transition-shadow
               "
             >

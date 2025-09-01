@@ -232,9 +232,10 @@ export const SettingsDialog = () => {
       </DialogTrigger>  
       <DialogContent
         className="
-          z-50 p-0 overflow-y-auto sm:rounded-xl
-          w-[calc(100vw-1rem)] max-w-[95vw] max-h-[92dvh]
-          sm:w-[min(90vw,40rem)] md:w-[min(90vw,48rem)] lg:w-[min(90vw,56rem)]  /* desktop widths */
+          z-50 p-0 overflow-y-auto
+          inset-0 h-[100dvh] w-screen rounded-none translate-x-0 translate-y-0
+          sm:inset-auto sm:left-1/2 sm:top-1/2 sm:h-auto sm:w-auto sm:max-w-3xl md:max-w-4xl sm:rounded-xl
+          sm:-translate-x-1/2 sm:-translate-y-1/2
         "
       >
         <DialogHeader className="px-5 py-4 border-b">
