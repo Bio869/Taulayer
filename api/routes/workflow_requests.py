@@ -16,6 +16,7 @@ from services.logger import log_event
 
 # NEW: Supabase JWT identity + email-allowlist guard
 from auth import get_identity
+from auth import maybe_get_identity, get_current_user, resolve_user_identity
 from services.request_handler import require_known_user_by_email
 
 router = APIRouter()
@@ -35,9 +36,11 @@ async def create_request(
     request: RequestCreate,
     background_tasks: BackgroundTasks,
     supabase: Client = Depends(get_supabase),
-    ident = Depends(get_identity),                      # ← validated {user_id,email}
-    x_force_db_timeout: Optional[str] = Header(None),   # debug only
-    x_force_db_unavailable: Optional[str] = Header(None),  # debug only
+    ident = Depends(maybe_get_identity),              # ← optional JWT
+    current_user = Depends(get_current_user),         # ← optional API key user
+    x_provided_user_id: Optional[str] = Header(None), # ← optional header
+    x_force_db_timeout: Optional[str] = Header(None),
+    x_force_db_unavailable: Optional[str] = Header(None),
 ):
     """
     Create a request -> analyze -> either (a) execute (immediate or scheduled)
@@ -77,14 +80,22 @@ async def create_request(
         if x_force_db_unavailable == "1":
             raise HTTPException(status_code=503, detail="Database temporarily unavailable (simulated)")
 
-    # ── 1) Identity: invite-only by email in public.users ─────────────────────
-    app_user = require_known_user_by_email(
-        supabase,
-        email=ident.email,
-        provided_user_id=ident.user_id,      # optional first-time link
-    )
-    user_id = app_user["id"]
-    priority = request.priority or app_user.get("default_priority", "medium")
+      # ── 1) Identity (AuthN + AuthZ) ───────────────────────────────────────────
+    if ident and settings.debug is False:
+        # Production strict path: JWT + allow-listed email
+        app_user = require_known_user_by_email(
+            supabase,
+            email=ident.email,
+            provided_user_id=ident.user_id,  # optional link on first use
+        )
+    else:
+        # Dev/tests (DEBUG=True) or no JWT: legacy precedence
+        app_user, _notes = resolve_user_identity(
+            supabase=supabase,
+            request=request,
+            current_user=current_user,
+            x_provided_user_id=x_provided_user_id,
+        )
 
     # ── 2) Insert request row (pending → analyzing) ────────────────────────────
     request_id = request_handler.create_request(
