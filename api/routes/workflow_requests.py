@@ -1,28 +1,30 @@
 # api/routes/workflow_requests.py
 from __future__ import annotations
+
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Dict, Any
+from typing import Optional
 
 from fastapi import APIRouter, Depends, BackgroundTasks, Header, HTTPException
 from fastapi.responses import JSONResponse
 from supabase import Client
 
+from config import settings
 from db.dependencies import get_supabase
 from logic import predictor, suggester
 from schemas import RequestCreate, RequestResponse, Suggestion
 from services import request_handler, scheduler
-from config import settings
 from services.logger import log_event
 
-# NEW: Supabase JWT identity + email-allowlist guard
-from auth import get_identity
+# Auth: optional Supabase JWT + legacy precedence helpers
 from auth import maybe_get_identity, get_current_user, resolve_user_identity
 from services.request_handler import require_known_user_by_email
 
 router = APIRouter()
 
+
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
+
 
 def _to_utc(dt: Optional[datetime]) -> Optional[datetime]:
     if dt is None:
@@ -31,16 +33,17 @@ def _to_utc(dt: Optional[datetime]) -> Optional[datetime]:
         return dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc)
 
+
 @router.post("/requests", response_model=RequestResponse)
 async def create_request(
     request: RequestCreate,
     background_tasks: BackgroundTasks,
     supabase: Client = Depends(get_supabase),
-    ident = Depends(maybe_get_identity),              # ← optional JWT
-    current_user = Depends(get_current_user),         # ← optional API key user
-    x_provided_user_id: Optional[str] = Header(None), # ← optional header
-    x_force_db_timeout: Optional[str] = Header(None),
-    x_force_db_unavailable: Optional[str] = Header(None),
+    ident=Depends(maybe_get_identity),                 # optional JWT identity
+    current_user=Depends(get_current_user),            # optional API-key user
+    x_provided_user_id: Optional[str] = Header(None),  # optional external id header
+    x_force_db_timeout: Optional[str] = Header(None),  # debug only
+    x_force_db_unavailable: Optional[str] = Header(None),  # debug only
 ):
     """
     Create a request -> analyze -> either (a) execute (immediate or scheduled)
@@ -57,6 +60,7 @@ async def create_request(
                 "hint": f"Add at least {settings.prompt_min_chars} characters of detail.",
             },
         )
+
     if len(request.prompt) > settings.prompt_max_chars:
         return JSONResponse(
             status_code=413,
@@ -80,22 +84,29 @@ async def create_request(
         if x_force_db_unavailable == "1":
             raise HTTPException(status_code=503, detail="Database temporarily unavailable (simulated)")
 
-      # ── 1) Identity (AuthN + AuthZ) ───────────────────────────────────────────
+    # ── 1) Identity (AuthN + AuthZ) ───────────────────────────────────────────
+    # Optional hard-prod requirement: uncomment if you want JWT to be mandatory in prod
+    # if settings.debug is False and not ident:
+    #     raise HTTPException(status_code=401, detail="Missing bearer token")
+
     if ident and settings.debug is False:
         # Production strict path: JWT + allow-listed email
         app_user = require_known_user_by_email(
             supabase,
             email=ident.email,
-            provided_user_id=ident.user_id,  # optional link on first use
+            provided_user_id=ident.user_id,  # optional first-time link
         )
     else:
         # Dev/tests (DEBUG=True) or no JWT: legacy precedence
         app_user, _notes = resolve_user_identity(
             supabase=supabase,
-            request=request,
-            current_user=current_user,
-            x_provided_user_id=x_provided_user_id,
+            request=request,                      # Pydantic model (has .metadata/.user_id)
+            current_user=current_user,            # may be None
+            x_provided_user_id=x_provided_user_id # header wins
         )
+
+    user_id = app_user["id"]
+    priority = request.priority or app_user.get("default_priority", "medium")
 
     # ── 2) Insert request row (pending → analyzing) ────────────────────────────
     request_id = request_handler.create_request(
@@ -223,6 +234,7 @@ async def create_request(
         suggestions=suggestion_objs,
     )
 
+
 @router.get("/requests/{request_id}")
 async def get_request_status(
     request_id: str,
@@ -243,5 +255,6 @@ async def get_request_status(
     if not res.data:
         raise HTTPException(status_code=404, detail="Request not found")
     return res.data
+
 
 print("✅ workflow_requests router successfully loaded")
