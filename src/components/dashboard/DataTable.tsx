@@ -8,6 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { listRequests } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
@@ -148,69 +149,58 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
   const rowsPerPage = 25;
 
   useEffect(() => {
-    const loadData = async () => {
+    const load = async () => {
       setLoading(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      let mockData = generateMockData();
-      
-      // Apply filters
-      if (filters.userId) {
-        mockData = mockData.filter(row => 
-          row.user_id.toLowerCase().includes(filters.userId.toLowerCase())
-        );
-      }
-      
-      if (filters.searchPrompt) {
-        mockData = mockData.filter(row =>
-          row.prompt_request.toLowerCase().includes(filters.searchPrompt.toLowerCase())
-        );
-      }
-      
-      // Apply sorting
-      if (filters.sortBy.length > 0) {
-        mockData.sort((a, b) => {
-          for (const sort of filters.sortBy) {
-            let aVal, bVal;
-            switch (sort.field) {
-              case 'timestamp':
-                aVal = new Date(a.timestamp).getTime();
-                bVal = new Date(b.timestamp).getTime();
-                break;
-              case 'cpr':
-                aVal = a.estimated_cpr_usd;
-                bVal = b.estimated_cpr_usd;
-                break;
-              case 'latency':
-                aVal = a.estimated_latency_ms;
-                bVal = b.estimated_latency_ms;
-                break;
-              case 'total_cost_saved_usd':
-                aVal = a.total_cost_saved_usd;
-                bVal = b.total_cost_saved_usd;
-                break;
-              case 'total_time_saved_ms':
-                aVal = a.total_time_saved_ms;
-                bVal = b.total_time_saved_ms;
-                break;
-              default:
-                aVal = a[sort.field as keyof DataRow];
-                bVal = b[sort.field as keyof DataRow];
-            }
-            
-            if (aVal < bVal) return sort.direction === 'asc' ? -1 : 1;
-            if (aVal > bVal) return sort.direction === 'asc' ? 1 : -1;
-          }
-          return 0;
+      try {
+        const sort = filters.sortBy[0] ?? { field: "timestamp", direction: "desc" };
+        // map UI fields to API columns
+        const sortMap: Record<string,string> = {
+          timestamp: "created_at",
+          cpr: "predicted_tokens", // proxy
+          latency: "predicted_latency",
+          total_cost_saved_usd: "predicted_tokens", // proxy
+          total_time_saved_ms: "predicted_latency", // proxy
+        };
+        const resp = await listRequests({
+          userId: filters.userId || undefined,
+          q: filters.searchPrompt || undefined,
+          sortBy: sortMap[sort.field] ?? "created_at",
+          sortDir: sort.direction,
+          page: 1,            // you can hook pagination here later
+          pageSize: rowsPerPage,
         });
-      }
-      
-      setData(mockData);
-      setLoading(false);
-      setCurrentPage(1);
-    };
 
-    loadData();
+        const items = (resp.items ?? []).map((r: any) => ({
+          user_id: r.user_id,
+          prompt_request: r.prompt,
+          submitted_prompt: r.prompt, // you can split later if you store both
+          model_name: "N/A",
+          timestamp: r.created_at,
+          estimated_cpr_usd: Math.max(0.01, (r.predicted_tokens ?? 0) * 0.000002), // proxy to $; tune later
+          estimated_latency_ms: r.predicted_latency ?? 0,
+          suggestions: (r.suggestions ?? []).map((s: string) => ({
+            text: s,
+            estimated_new_cpr_usd: Math.max(0.01, (r.predicted_tokens ?? 0) * 0.0000016), // proxy reduced
+            estimated_new_latency_ms: Math.max(1, (r.predicted_latency ?? 0) * 0.7),
+            estimated_new_quality_pct: 50,
+            is_selected: false,
+          })),
+          total_time_saved_ms: 0,     // not in schema yet
+          total_cost_saved_usd: 0,    // not in schema yet
+          prompt_quality_pct: 50,     // not in schema yet
+          suggestion_type: 'none',
+        })) as DataRow[];
+
+        setData(items);
+      } catch (e) {
+        console.error(e);
+        setData([]);
+      } finally {
+        setLoading(false);
+        setCurrentPage(1);
+      }
+    };
+    load();
   }, [filters, refreshKey]);
 
   const formatCurrency = (amount: number): string => {

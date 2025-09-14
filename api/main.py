@@ -34,6 +34,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+logger.info(f"CORS allow_origins: {settings.cors_origins}")
+
 # ---- Global Exception Handling ----
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):

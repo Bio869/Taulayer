@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+// metricsoverview.tsx 
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, Clock, DollarSign, Target } from "lucide-react";
+import { getMetrics } from "@/lib/api";
 
 interface MetricsData {
   totalTimeSaved: number;
@@ -14,34 +16,58 @@ interface MetricsOverviewProps {
   data?: Record<PeriodType, MetricsData>;
 }
 
-export const MetricsOverview = ({
-  data = {
-    "7d": { totalTimeSaved: 12800000, totalCostSaved: 8.23, averageQualityLift: 12.1, totalOptimizations: 47 },
-    "30d": { totalTimeSaved: 45600000, totalCostSaved: 24.56, averageQualityLift: 18.3, totalOptimizations: 143 },
-    "ytd": { totalTimeSaved: 186400000, totalCostSaved: 142.89, averageQualityLift: 22.7, totalOptimizations: 687 }
-  }
-}: MetricsOverviewProps) => {
+export const MetricsOverview = ({ data: initial }: MetricsOverviewProps) => {
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>("30d");
+  const [remote, setRemote] = useState<Record<PeriodType, MetricsData> | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch live metrics from the backend; fall back to initial or defaults
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoading(true);
+        const m = await getMetrics(); // { "7d": {...}, "30d": {...}, "ytd": {...} }
+        setRemote(m);
+      } catch (e: any) {
+        console.error(e);
+        setError(e?.message ?? "Failed to load metrics");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  // Final dataset preference: remote → prop → defaults
+  const data: Record<PeriodType, MetricsData> =
+    remote ??
+    initial ?? {
+      "7d":  { totalTimeSaved: 12_800_000, totalCostSaved: 8.23,  averageQualityLift: 12.1, totalOptimizations: 47  },
+      "30d": { totalTimeSaved: 45_600_000, totalCostSaved: 24.56, averageQualityLift: 18.3, totalOptimizations: 143 },
+      "ytd": { totalTimeSaved: 186_400_000, totalCostSaved: 142.89, averageQualityLift: 22.7, totalOptimizations: 687 },
+    };
 
   const periodLabels: Record<PeriodType, string> = {
     "7d": "Past 7 Days",
     "30d": "Past 30 Days",
-    "ytd": "Year to Date"
+    "ytd": "Year to Date",
   };
 
   const current = data[selectedPeriod];
+
   const formatTime = (ms: number) => {
     const h = Math.floor(ms / 3_600_000);
     const m = Math.floor((ms % 3_600_000) / 60_000);
     return h > 0 ? `${h}h ${m}m` : `${m}m`;
   };
+
   const formatCurrency = (v: number) => `$${v.toFixed(2)}`;
 
   const metrics = [
-    { title: "Total Time Saved", value: formatTime(current.totalTimeSaved), icon: Clock, color: "text-blue-600", bg: "bg-blue-50", change: "+23% vs last period" },
-    { title: "Total Cost Saved", value: formatCurrency(current.totalCostSaved), icon: DollarSign, color: "text-green-600", bg: "bg-green-50", change: "+15% vs last period" },
-    { title: "Average Quality Lift", value: `${current.averageQualityLift}%`, icon: Target, color: "text-purple-600", bg: "bg-purple-50", change: "+12% vs last period" },
-    { title: "Total Optimizations", value: String(current.totalOptimizations), icon: TrendingUp, color: "text-orange-600", bg: "bg-orange-50", change: "+31% vs last period" }
+    { title: "Total Time Saved", value: formatTime(current.totalTimeSaved), icon: Clock,     color: "text-blue-600",   bg: "bg-blue-50",   change: loading ? "Loading…" : "+23% vs last period" },
+    { title: "Total Cost Saved", value: formatCurrency(current.totalCostSaved), icon: DollarSign, color: "text-green-600",  bg: "bg-green-50",  change: loading ? "Loading…" : "+15% vs last period" },
+    { title: "Average Quality Lift", value: `${current.averageQualityLift}%`, icon: Target,   color: "text-purple-600", bg: "bg-purple-50", change: loading ? "Loading…" : "+12% vs last period" },
+    { title: "Total Optimizations", value: String(current.totalOptimizations), icon: TrendingUp, color: "text-orange-600", bg: "bg-orange-50", change: loading ? "Loading…" : "+31% vs last period" },
   ];
 
   return (
@@ -49,6 +75,7 @@ export const MetricsOverview = ({
       {/* Header + period tabs */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-semibold text-base sm:text-lg text-foreground">Performance Overview</h2>
+
         <div className="hidden sm:flex gap-1 rounded-lg bg-muted p-1">
           {(["7d", "30d", "ytd"] as PeriodType[]).map((p) => (
             <Button
@@ -62,6 +89,7 @@ export const MetricsOverview = ({
             </Button>
           ))}
         </div>
+
         <select
           className="sm:hidden w-auto rounded-md border bg-background px-2 py-1 text-sm"
           value={selectedPeriod}
@@ -73,7 +101,14 @@ export const MetricsOverview = ({
         </select>
       </div>
 
-      {/* Desktop/tablet grid — unaffected */}
+      {/* Optional small error line */}
+      {error && (
+        <div className="text-xs text-destructive">
+          {error}
+        </div>
+      )}
+
+      {/* Desktop/tablet grid */}
       <div className="hidden md:grid grid-cols-2 lg:grid-cols-4 gap-4">
         {metrics.map((m, i) => (
           <Card key={i} className="hover:shadow-md transition-shadow">
@@ -93,7 +128,7 @@ export const MetricsOverview = ({
         ))}
       </div>
 
-      {/* Mobile-only carousel (scoped) */}
+      {/* Mobile-only carousel */}
       <div className="block md:hidden -mx-4 px-4">
         <div
           className="

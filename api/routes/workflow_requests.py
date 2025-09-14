@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, BackgroundTasks, Header, HTTPException
+from fastapi import APIRouter, Depends, BackgroundTasks, Header, HTTPException, Query
 from fastapi.responses import JSONResponse
 from supabase import Client
 
@@ -256,5 +256,87 @@ async def get_request_status(
         raise HTTPException(status_code=404, detail="Request not found")
     return res.data
 
+@router.get("/requests", tags=["Requests"])
+async def list_requests(
+    supabase: Client = Depends(get_supabase),
+    # filters
+    user_id_like: Optional[str] = Query(None),
+    q: Optional[str] = Query(None),  # search in prompt
+    # sorting (fallback to created_at desc)
+    sort_by: Optional[str] = Query("created_at"),
+    sort_dir: Optional[str] = Query("desc"),  # 'asc'|'desc'
+    # pagination
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=200),
+):
+    sel = (
+        supabase.table("requests")
+        .select(
+            "id,user_id,prompt,priority,status,"
+            "predicted_latency,predicted_tokens,predicted_complexity,"
+            "executed_at,suggestions,updated_at,created_at",
+            count="exact"  # to get total rows
+        )
+    )
+
+    if user_id_like:
+        sel = sel.ilike("user_id", f"%{user_id_like}%")
+    if q:
+        sel = sel.ilike("prompt", f"%{q}%")
+
+    # ordering
+    sort_col = sort_by if sort_by in {
+        "created_at","updated_at","predicted_latency","predicted_tokens","predicted_complexity","priority","status"
+    } else "created_at"
+    sel = sel.order(sort_col, desc=(sort_dir != "asc"))
+
+    # pagination via range()
+    start = (page - 1) * page_size
+    end = start + page_size - 1
+    res = sel.range(start, end).execute()
+
+    return {
+        "items": res.data or [],
+        "total": res.count or 0,
+        "page": page,
+        "page_size": page_size,
+        "sort_by": sort_col,
+        "sort_dir": sort_dir,
+    }
+
+@router.get("/metrics", tags=["Requests"])
+async def metrics(
+    supabase: Client = Depends(get_supabase),
+):
+    def _range(days: int):
+        since = (datetime.utcnow() - timedelta(days=days)).isoformat()
+        sel = supabase.table("requests").select(
+            "predicted_latency,predicted_tokens,priority,status,executed_at"
+        ).gte("created_at", since)
+        return (sel.execute().data) or []
+
+    def _calc(rows):
+        # toy aggregation: total completed “time saved”/“cost saved” aren’t in schema,
+        # so use simple proxies from predictions for now; you can refine later.
+        total_latency_ms = sum(int(r.get("predicted_latency") or 0) for r in rows)
+        total_tokens = sum(int(r.get("predicted_tokens") or 0) for r in rows)
+        completed = sum(1 for r in rows if r.get("status") == "completed")
+        return {
+            "totalTimeSaved": max(0, total_latency_ms // 2),   # placeholder proxy
+            "totalCostSaved": round(max(0, total_tokens * 0.000002), 2),  # proxy $
+            "averageQualityLift": 0.0,       # no quality metric in schema yet
+            "totalOptimizations": completed, # proxy count
+        }
+
+    m7  = _calc(_range(7))
+    m30 = _calc(_range(30))
+    # Year to date
+    jan1 = datetime(datetime.utcnow().year, 1, 1).isoformat()
+    rows_ytd = (supabase.table("requests").select(
+        "predicted_latency,predicted_tokens,priority,status,executed_at"
+    ).gte("created_at", jan1).execute().data) or []
+    mytd = _calc(rows_ytd)
+
+    return {"7d": m7, "30d": m30, "ytd": mytd}
 
 print("✅ workflow_requests router successfully loaded")
