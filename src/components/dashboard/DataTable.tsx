@@ -334,6 +334,7 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                             <Copy className="h-3 w-3" />
                           </Button>
                         </div>
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Tooltip>
