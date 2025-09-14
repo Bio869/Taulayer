@@ -334,20 +334,17 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                             <Copy className="h-3 w-3" />
                           </Button>
                         </div>
-                      </TableCell>
-                      <TableCell className="max-w-[420px]">
+                      <TableCell>
                         <div className="flex items-center gap-2">
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <div className="cursor-pointer">
-                                <p className="text-sm break-words">
-                                  {row.prompt_request.length > 35
-                                    ? row.prompt_request.slice(0, 35) + "..."
-                                    : row.prompt_request}
-                                </p>
-                              </div>
+                              <span className="flex-1 text-sm whitespace-nowrap overflow-hidden text-ellipsis">
+                                {row.prompt_request.length > 35
+                                  ? row.prompt_request.slice(0, 35) + "…"
+                                  : row.prompt_request}
+                              </span>
                             </TooltipTrigger>
-                            <TooltipContent className="max-w-[640px]">
+                            <TooltipContent>
                               <p className="whitespace-pre-wrap break-words">
                                 {row.prompt_request}
                               </p>
