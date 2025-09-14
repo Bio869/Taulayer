@@ -336,19 +336,18 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
+                        <div className="min-w-0 flex items-center gap-2">
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="min-w-0 flex-1 text-sm whitespace-nowrap overflow-hidden text-ellipsis">
+                              {/* truncate = overflow-hidden + text-ellipsis + whitespace-nowrap */}
+                              <span className="flex-1 truncate text-sm">
                                 {row.prompt_request.length > 35
                                   ? row.prompt_request.slice(0, 35) + "…"
                                   : row.prompt_request}
                               </span>
                             </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="whitespace-pre-wrap break-words">
-                                {row.prompt_request}
-                              </p>
+                            <TooltipContent className="max-w-[640px]">
+                              <p className="whitespace-pre-wrap break-words">{row.prompt_request}</p>
                             </TooltipContent>
                           </Tooltip>
 
