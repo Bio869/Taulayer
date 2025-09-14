@@ -1,3 +1,4 @@
+// src/components/dashboard/DataTable.tsx
 import { useState, useEffect } from "react";
 import {
   Table,
@@ -238,11 +239,6 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
     });
   };
 
-  const truncateText = (text: string, maxLength: number): string => {
-    if (text.length <= maxLength) return text;
-    return text.slice(0, maxLength) + "...";
-  };
-
   const paginatedData = data.slice(
     (currentPage - 1) * rowsPerPage,
     currentPage * rowsPerPage
@@ -339,28 +335,33 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                           </Button>
                         </div>
                       </TableCell>
-                      <TableCell className="max-w-xs">
+                      <TableCell className="max-w-[420px]">
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div className="cursor-pointer">
-                              <p className="line-clamp-2 text-sm">
+                              {/* 2-line clamp with safe wrapping */}
+                              <p className="line-clamp-2 text-sm break-words">
                                 {row.prompt_request}
                               </p>
                             </div>
                           </TooltipTrigger>
-                          <TooltipContent className="max-w-md">
-                            <p>{row.prompt_request}</p>
+                          {/* Wider tooltip; preserve newlines and wrap long tokens */}
+                          <TooltipContent className="max-w-[640px]">
+                            <p className="whitespace-pre-wrap break-words">{row.prompt_request}</p>
                           </TooltipContent>
                         </Tooltip>
+
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => copyToClipboard(row.prompt_request, "Prompt")}
                           className="mt-1"
+                          title="Copy full prompt"
                         >
                           <Copy className="h-3 w-3" />
                         </Button>
                       </TableCell>
+
                       <TableCell>
                         <Tooltip>
                           <TooltipTrigger>
