@@ -273,7 +273,7 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
     <TooltipProvider>
       <div className="space-y-4">
          <div className="rounded-lg border bg-card">
-          <Table className="table-auto w-full">
+          <Table className="table-fixed w-full">
 
               <colgroup>
                 <col />  {/* User ID */}
@@ -352,11 +352,11 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                           </Button>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <div className="min-w-0 flex items-center gap-2">
+                      <TableCell className="overflow-hidden">
+                        <div className="min-w-0 w-full flex items-center gap-2">
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              {/* 'truncate' = single-line ellipsis that adapts to available width */}
+                              {/* truncate = overflow-hidden + text-ellipsis + nowrap */}
                               <span className="flex-1 truncate text-sm">
                                 {row.prompt_request}
                               </span>
