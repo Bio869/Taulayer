@@ -322,7 +322,7 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                   return (
                     <TableRow key={index}>
                       <TableCell>
-                        <div className="items-center gap-2">
+                        <div className="flex items-center gap-2">
                           <code className="text-sm bg-muted px-2 py-1 rounded">
                             {row.user_id}
                           </code>
@@ -336,10 +336,10 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="items-center gap-2">
+                        <div className="flex items-center gap-2">
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="text-sm whitespace-nowrap overflow-hidden text-ellipsis">
+                              <span className="min-w-0 flex-1 text-sm whitespace-nowrap overflow-hidden text-ellipsis">
                                 {row.prompt_request.length > 35
                                   ? row.prompt_request.slice(0, 35) + "…"
                                   : row.prompt_request}
