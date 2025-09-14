@@ -341,8 +341,8 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                             <TooltipTrigger asChild>
                               <div className="cursor-pointer">
                                 <p className="text-sm break-words">
-                                  {row.prompt_request.length > 30
-                                    ? row.prompt_request.slice(0, 30) + "..."
+                                  {row.prompt_request.length > 35
+                                    ? row.prompt_request.slice(0, 35) + "..."
                                     : row.prompt_request}
                                 </p>
                               </div>
