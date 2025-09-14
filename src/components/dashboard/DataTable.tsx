@@ -339,15 +339,15 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                         <div className="min-w-0 flex items-center gap-2">
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              {/* truncate = overflow-hidden + text-ellipsis + whitespace-nowrap */}
+                              {/* 'truncate' = single-line ellipsis that adapts to available width */}
                               <span className="flex-1 truncate text-sm">
-                                {row.prompt_request.length > 35
-                                  ? row.prompt_request.slice(0, 35) + "…"
-                                  : row.prompt_request}
+                                {row.prompt_request}
                               </span>
                             </TooltipTrigger>
                             <TooltipContent className="max-w-[640px]">
-                              <p className="whitespace-pre-wrap break-words">{row.prompt_request}</p>
+                              <p className="whitespace-pre-wrap break-words">
+                                {row.prompt_request}
+                              </p>
                             </TooltipContent>
                           </Tooltip>
 
