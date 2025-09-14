@@ -274,6 +274,23 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
       <div className="space-y-4">
          <div className="rounded-lg border bg-card">
           <Table className="table-auto w-full">
+
+              <colgroup>
+                <col />  {/* User ID */}
+                <col className="w-[48ch] md:w-[56ch] lg:w-[64ch]" /> {/* Prompt Requests */}
+                <col />  {/* Quality */}
+                <col />  {/* Model Name */}
+                <col />  {/* Timestamp */}
+                <col />  {/* Est. CPR */}
+                <col />  {/* Est. Latency */}
+                <col />  {/* Top Suggestions */}
+                <col />  {/* New Cost */}
+                <col />  {/* New Latency */}
+                <col />  {/* New Quality */}
+                <col />  {/* Time Saved */}
+                <col />  {/* Cost Saved */}
+              </colgroup>
+
             <TableHeader>
             <TableRow>
               <TableHead>User ID</TableHead>
