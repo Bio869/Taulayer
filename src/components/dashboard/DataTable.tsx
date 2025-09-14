@@ -336,30 +336,33 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                         </div>
                       </TableCell>
                       <TableCell className="max-w-[420px]">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="cursor-pointer">
-                              {/* 2-line clamp with safe wrapping */}
-                              <p className="line-clamp-2 text-sm break-words">
+                        <div className="flex items-center gap-2">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="cursor-pointer">
+                                <p className="text-sm break-words">
+                                  {row.prompt_request.length > 30
+                                    ? row.prompt_request.slice(0, 30) + "..."
+                                    : row.prompt_request}
+                                </p>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-[640px]">
+                              <p className="whitespace-pre-wrap break-words">
                                 {row.prompt_request}
                               </p>
-                            </div>
-                          </TooltipTrigger>
-                          {/* Wider tooltip; preserve newlines and wrap long tokens */}
-                          <TooltipContent className="max-w-[640px]">
-                            <p className="whitespace-pre-wrap break-words">{row.prompt_request}</p>
-                          </TooltipContent>
-                        </Tooltip>
+                            </TooltipContent>
+                          </Tooltip>
 
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => copyToClipboard(row.prompt_request, "Prompt")}
-                          className="mt-1"
-                          title="Copy full prompt"
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyToClipboard(row.prompt_request, "Prompt")}
+                            title="Copy full prompt"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </TableCell>
 
                       <TableCell>
