@@ -273,7 +273,7 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
     <TooltipProvider>
       <div className="space-y-4">
          <div className="rounded-lg border bg-card">
-          <Table>
+          <Table className="table-auto w-full">
             <TableHeader>
             <TableRow>
               <TableHead>User ID</TableHead>
