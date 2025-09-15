@@ -277,7 +277,7 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
 
               <colgroup>
                 <col className="w-[22ch]" />                           {/* User ID */}
-                <col className="w-[44ch] md:w-[52ch] lg:w-[56ch]" />   {/* Prompt Requests (narrower than before) */}
+                <col className="w-[30ch]" />   {/* Prompt Requests (narrower than before) */}
                 <col className="w-[8ch]"  />                           {/* Quality */}
                 <col className="w-[10ch]" />                           {/* Model Name */}
                 <col className="w-[20ch]" />                           {/* Timestamp */}
