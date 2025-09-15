@@ -273,22 +273,22 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
     <TooltipProvider>
       <div className="space-y-4">
          <div className="rounded-lg border bg-card">
-          <Table className="table-fixed w-full">
+          <Table className="w-full">
 
               <colgroup>
-                <col />  {/* User ID */}
-                <col className="w-[48ch] md:w-[56ch] lg:w-[64ch]" /> {/* Prompt Requests */}
-                <col />  {/* Quality */}
-                <col />  {/* Model Name */}
-                <col />  {/* Timestamp */}
-                <col />  {/* Est. CPR */}
-                <col />  {/* Est. Latency */}
-                <col />  {/* Top Suggestions */}
-                <col />  {/* New Cost */}
-                <col />  {/* New Latency */}
-                <col />  {/* New Quality */}
-                <col />  {/* Time Saved */}
-                <col />  {/* Cost Saved */}
+                <col className="w-[22ch]" />                           {/* User ID */}
+                <col className="w-[44ch] md:w-[52ch] lg:w-[56ch]" />   {/* Prompt Requests (narrower than before) */}
+                <col className="w-[8ch]"  />                           {/* Quality */}
+                <col className="w-[10ch]" />                           {/* Model Name */}
+                <col className="w-[20ch]" />                           {/* Timestamp */}
+                <col className="w-[10ch]" />                           {/* Est. CPR */}
+                <col className="w-[12ch]" />                           {/* Est. Latency */}
+                <col className="w-16"    />                            {/* Top Suggestions (icon) */}
+                <col className="w-[10ch]" />                           {/* New Cost */}
+                <col className="w-[12ch]" />                           {/* New Latency */}
+                <col className="w-[12ch]" />                           {/* New Quality */}
+                <col className="w-[10ch]" />                           {/* Time Saved */}
+                <col className="w-[10ch]" />                           {/* Cost Saved */}
               </colgroup>
 
             <TableHeader>
