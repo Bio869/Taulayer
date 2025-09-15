@@ -336,6 +336,20 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                     return <Bot className="h-4 w-4" />;
                   };
 
+                  // Limit how many suggestions we show in the main table
+                  const allSuggestions = Array.isArray(row.suggestions) ? row.suggestions : [];
+                  const selectedIndex = allSuggestions.findIndex(s => s.is_selected);
+
+                  // By default, show the first 3
+                  let visibleSuggestions = allSuggestions.slice(0, 3);
+
+                  // Optional: if the user-selected suggestion isn't in the first 3, include it
+                  if (selectedIndex >= 3) {
+                    visibleSuggestions = [allSuggestions[selectedIndex], ...allSuggestions.slice(0, 2)];
+                  }
+
+                  const hiddenCount = Math.max(0, allSuggestions.length - visibleSuggestions.length);
+
                   return (
                     <TableRow key={index}>
                       <TableCell>
@@ -430,39 +444,55 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                           </TooltipContent>
                         </Tooltip>
                       </TableCell>
+                      {/* New Cost – show only visibleSuggestions (+ optional +N more) */}
                       <TableCell>
                         <div className="space-y-1">
-                          {row.suggestions.map((suggestion, idx) => (
-                            <Badge 
-                              key={idx} 
-                              variant="secondary" 
-                              className={`text-xs ${suggestion.is_selected ? 'bg-yellow-100 text-yellow-800 border-yellow-300' : ''}`}
+                          {visibleSuggestions.map((suggestion, idx) => (
+                            <Badge
+                              key={idx}
+                              variant="secondary"
+                              className={`text-xs ${
+                                suggestion.is_selected ? 'bg-yellow-100 text-yellow-800 border-yellow-300' : ''
+                              }`}
                             >
                               {formatCurrency(suggestion.estimated_new_cpr_usd)}
                             </Badge>
                           ))}
+                          {hiddenCount > 0 && (
+                            <Badge variant="outline" className="text-xs text-muted-foreground">
+                              +{hiddenCount} more
+                            </Badge>
+                          )}
                         </div>
                       </TableCell>
+
+                      {/* New Latency – use the same 3-item slice */}
                       <TableCell>
                         <div className="space-y-1">
-                          {row.suggestions.map((suggestion, idx) => (
-                            <Badge 
-                              key={idx} 
-                              variant="secondary" 
-                              className={`text-xs ${suggestion.is_selected ? 'bg-yellow-100 text-yellow-800 border-yellow-300' : ''}`}
+                          {visibleSuggestions.map((suggestion, idx) => (
+                            <Badge
+                              key={idx}
+                              variant="secondary"
+                              className={`text-xs ${
+                                suggestion.is_selected ? 'bg-yellow-100 text-yellow-800 border-yellow-300' : ''
+                              }`}
                             >
                               {formatLatency(suggestion.estimated_new_latency_ms)}
                             </Badge>
                           ))}
                         </div>
                       </TableCell>
+
+                      {/* New Quality – use the same 3-item slice */}
                       <TableCell>
                         <div className="space-y-1">
-                          {row.suggestions.map((suggestion, idx) => (
-                            <Badge 
-                              key={idx} 
-                              variant="secondary" 
-                              className={`text-xs ${suggestion.is_selected ? 'bg-yellow-100 text-yellow-800 border-yellow-300' : ''}`}
+                          {visibleSuggestions.map((suggestion, idx) => (
+                            <Badge
+                              key={idx}
+                              variant="secondary"
+                              className={`text-xs ${
+                                suggestion.is_selected ? 'bg-yellow-100 text-yellow-800 border-yellow-300' : ''
+                              }`}
                             >
                               {suggestion.estimated_new_quality_pct}%
                             </Badge>
