@@ -372,8 +372,8 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                             <TooltipTrigger asChild>
                               {/* truncate = overflow-hidden + text-ellipsis + nowrap */}
                               <span className="flex-1 text-sm cursor-pointer">
-                                {row.prompt_request.length > 20
-                                  ? row.prompt_request.slice(0, 20) + "..."
+                                {row.prompt_request.length > 24
+                                  ? row.prompt_request.slice(0, 24) + "..."
                                   : row.prompt_request}
                               </span>
                             </TooltipTrigger>
