@@ -92,12 +92,7 @@ export const SuggestionDrawer = ({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <p
-                        className="
-                          text-sm bg-muted p-3 rounded-lg
-                          whitespace-pre-wrap break-words [overflow-wrap:anywhere]
-                          line-clamp-2 max-h-16 overflow-hidden
-                        "
-                        title={row.prompt_request}
+                        className="text-sm bg-muted p-3 rounded-lg whitespace-pre-wrap break-words [overflow-wrap:anywhere] line-clamp-2 max-h-16 overflow-hidden"
                       >
                         {row.prompt_request}
                       </p>
