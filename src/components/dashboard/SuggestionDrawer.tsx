@@ -211,7 +211,7 @@ export const SuggestionDrawer = ({
                             <div className="space-y-1">
                               <div className="flex justify-between text-xs">
                                 <span>New latency:</span>
-                                <Badge variant="secondary" className="px-4">
+                                <Badge variant="secondary">
                                   {formatLatency(suggestion.estimated_new_latency_ms)}
                                 </Badge>
                               </div>

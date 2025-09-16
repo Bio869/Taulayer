@@ -355,7 +355,7 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <code className="text-sm bg-muted px-2 py-1 rounded">
-                            {row.user_id}
+                             {row.user_id.length > 14 ? row.user_id.slice(0, 14) + "..." : row.user_id}
                           </code>
                           <Button
                             variant="ghost"
@@ -473,7 +473,7 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                             <Badge
                               key={idx}
                               variant="secondary"
-                              className={`text-xs ${
+                              className={`text-xs px-4 ${
                                 suggestion.is_selected ? 'bg-yellow-100 text-yellow-800 border-yellow-300' : ''
                               }`}
                             >
