@@ -175,7 +175,7 @@ export const SuggestionDrawer = ({
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        <p className="text-sm bg-accent p-3 rounded-lg whitespace-pre-wrap break-words [overflow-wrap:anywhere] line-clamp-3 max-h-24 overflow-hidden">
+                        <p className="text-sm bg-accent p-3 rounded-lg whitespace-pre-wrap [overflow-wrap:anywhere] line-clamp-3 max-h-24 overflow-hidden">
                           {suggestion.text}
                         </p>
                         
