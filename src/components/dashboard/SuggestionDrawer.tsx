@@ -91,10 +91,10 @@ export const SuggestionDrawer = ({
                   {/* Clamp to two lines, wrap long tokens, and show full text on hover */}
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <p
-                        className="text-sm bg-muted p-3 rounded-lg whitespace-pre-wrap break-words [overflow-wrap:anywhere] line-clamp-2 max-h-16 overflow-hidden"
-                      >
-                        {row.prompt_request}
+                      <p className="text-sm bg-muted p-3 rounded-lg whitespace-pre-wrap break-words">
+                        {row.prompt_request.length > 36
+                          ? `${row.prompt_request.slice(0, 36)}...`
+                          : row.prompt_request}
                       </p>
                     </TooltipTrigger>
                     <TooltipContent className="max-w-[640px]">
