@@ -284,8 +284,8 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                 <col className="w-[10ch]" />                           {/* Est. CPR */}
                 <col className="w-[12ch]" />                           {/* Est. Latency */}
                 <col className="w-[14ch]" />                            {/* Top Suggestions (icon) */}
-                <col className="w-[10ch]" />                           {/* New Cost */}
-                <col className="w-[14ch]" />                           {/* New Latency */}
+                <col className="w-[12ch]" />                           {/* New Cost */}
+                <col className="w-[12ch]" />                           {/* New Latency */}
                 <col className="w-[12ch]" />                           {/* New Quality */}
                 <col className="w-[10ch]" />                           {/* Time Saved */}
                 <col className="w-[10ch]" />                           {/* Cost Saved */}
@@ -475,7 +475,7 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                             <Badge
                               key={idx}
                               variant="secondary"
-                              className={`text-xs px-4 ${
+                              className={`text-xs ${
                                 suggestion.is_selected ? 'bg-yellow-100 text-yellow-800 border-yellow-300' : ''
                               }`}
                             >
