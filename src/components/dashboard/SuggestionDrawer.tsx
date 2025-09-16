@@ -92,8 +92,8 @@ export const SuggestionDrawer = ({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <p className="text-sm bg-muted p-3 rounded-lg whitespace-pre-wrap break-words">
-                        {row.prompt_request.length > 36
-                          ? `${row.prompt_request.slice(0, 36)}...`
+                        {row.prompt_request.length > 42
+                          ? `${row.prompt_request.slice(0, 42)}...`
                           : row.prompt_request}
                       </p>
                     </TooltipTrigger>
