@@ -280,7 +280,7 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                 <col className="w-[26ch]" />   {/* Prompt Requests (narrower than before) */}
                 <col className="w-[8ch]"  />                           {/* Quality */}
                 <col className="w-[12ch]" />                           {/* Model Name */}
-                <col className="w-[20ch]" />                           {/* Timestamp */}
+                <col className="w-[16ch]" />                           {/* Timestamp */}
                 <col className="w-[10ch]" />                           {/* Est. CPR */}
                 <col className="w-[12ch]" />                           {/* Est. Latency */}
                 <col className="w-[14ch]" />                            {/* Top Suggestions (icon) */}
