@@ -14,6 +14,11 @@ import { Separator } from "@/components/ui/separator";
 import { Copy, TrendingDown, Clock, MessageCircle, Gauge } from "lucide-react";
 import { DataRow } from "./DataTable";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface SuggestionDrawerProps {
   row: DataRow;
@@ -83,31 +88,40 @@ export const SuggestionDrawer = ({
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <p className="text-sm bg-muted p-3 rounded-lg">
-                    {row.prompt_request}
-                  </p>
-                  
+                  {/* Clamp to two lines, wrap long tokens, and show full text on hover */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <p
+                        className="
+                          text-sm bg-muted p-3 rounded-lg
+                          whitespace-pre-wrap break-words [overflow-wrap:anywhere]
+                          line-clamp-2 max-h-16 overflow-hidden
+                        "
+                        title={row.prompt_request}
+                      >
+                        {row.prompt_request}
+                      </p>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[640px]">
+                      <p className="whitespace-pre-wrap break-words">{row.prompt_request}</p>
+                    </TooltipContent>
+                  </Tooltip>
+
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <span>Cost:</span>
-                      <Badge variant="outline">
-                        {formatCurrency(row.estimated_cpr_usd)}
-                      </Badge>
+                      <Badge variant="outline">{formatCurrency(row.estimated_cpr_usd)}</Badge>
                     </div>
                     <div className="flex items-center gap-1">
                       <span>Latency:</span>
-                      <Badge variant="outline">
-                        {formatLatency(row.estimated_latency_ms)}
-                      </Badge>
+                      <Badge variant="outline">{formatLatency(row.estimated_latency_ms)}</Badge>
                     </div>
                     <div className="flex items-center gap-1">
                       <span>Quality:</span>
-                      <Badge variant="outline">
-                        {row.prompt_quality_pct}%
-                      </Badge>
+                      <Badge variant="outline">{row.prompt_quality_pct}%</Badge>
                     </div>
                   </div>
-                  
+
                   <Button
                     variant="ghost"
                     size="sm"
@@ -166,7 +180,7 @@ export const SuggestionDrawer = ({
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        <p className="text-sm bg-accent p-3 rounded-lg">
+                        <p className="text-sm bg-accent p-3 rounded-lg whitespace-pre-wrap break-words [overflow-wrap:anywhere] line-clamp-3 max-h-24 overflow-hidden">
                           {suggestion.text}
                         </p>
                         
