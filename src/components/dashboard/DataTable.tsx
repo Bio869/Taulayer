@@ -563,9 +563,10 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
 
         {selectedSuggestions && (
           <SuggestionDrawer
+            key={`${selectedSuggestions.row.user_id}-${selectedSuggestions.row.timestamp}`} // <-- force re-mount per row
             row={selectedSuggestions.row}
             open={selectedSuggestions.isOpen}
-            onOpenChange={(open) => 
+            onOpenChange={(open) =>
               setSelectedSuggestions(open ? selectedSuggestions : null)
             }
           />
