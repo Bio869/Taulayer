@@ -277,7 +277,7 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
 
               <colgroup>
                 <col className="w-[22ch]" />                           {/* User ID */}
-                <col className="w-[28ch]" />   {/* Prompt Requests (narrower than before) */}
+                <col className="w-[26ch]" />   {/* Prompt Requests (narrower than before) */}
                 <col className="w-[8ch]"  />                           {/* Quality */}
                 <col className="w-[12ch]" />                           {/* Model Name */}
                 <col className="w-[20ch]" />                           {/* Timestamp */}
@@ -372,8 +372,8 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                             <TooltipTrigger asChild>
                               {/* truncate = overflow-hidden + text-ellipsis + nowrap */}
                               <span className="flex-1 text-sm cursor-pointer whitespace-pre-wrap break-all">
-                                {row.prompt_request.length > 24
-                                  ? row.prompt_request.slice(0, 24) + "..."
+                                {row.prompt_request.length > 26
+                                  ? row.prompt_request.slice(0, 26) + "..."
                                   : row.prompt_request}
                               </span>
                             </TooltipTrigger>
