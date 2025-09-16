@@ -371,7 +371,7 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                           <Tooltip>
                             <TooltipTrigger asChild>
                               {/* truncate = overflow-hidden + text-ellipsis + nowrap */}
-                              <span className="flex-1 truncate text-sm">
+                              <span className="flex-1 text-sm whitespace-pre-wrap break-words">
                                 {row.prompt_request}
                               </span>
                             </TooltipTrigger>
