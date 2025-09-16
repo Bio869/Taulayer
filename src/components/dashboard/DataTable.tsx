@@ -284,9 +284,9 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                 <col className="w-[10ch]" />                           {/* Est. CPR */}
                 <col className="w-[12ch]" />                           {/* Est. Latency */}
                 <col className="w-[14ch]" />                            {/* Top Suggestions (icon) */}
-                <col className="w-[12ch]" />                           {/* New Cost */}
-                <col className="w-[12ch]" />                           {/* New Latency */}
-                <col className="w-[12ch]" />                           {/* New Quality */}
+                <col className="w-[10ch]" />                           {/* New Cost */}
+                <col className="w-[10ch]" />                           {/* New Latency */}
+                <col className="w-[10ch]" />                           {/* New Quality */}
                 <col className="w-[10ch]" />                           {/* Time Saved */}
                 <col className="w-[10ch]" />                           {/* Cost Saved */}
               </colgroup>
