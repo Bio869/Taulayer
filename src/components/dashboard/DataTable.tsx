@@ -1,4 +1,5 @@
 // src/components/dashboard/DataTable.tsx
+console.log("DataTable build: NO_PLUS_BADGE");
 import { useState, useEffect } from "react";
 import {
   Table,
