@@ -11,7 +11,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "predeploy": "vite build && shx cp dist/index.html dist/404.html && shx cp CNAME dist/CNAME && shx touch dist/.nojekyll",
-    "deploy": "gh-pages -d dist -r https://$GH_TOKEN@github.com/Bio869/Taulayer.git",
+    "deploy": "gh-pages -d dist -b gh-pages",
     "server": "node src/server/email.cjs"
   },
   "dependencies": {
