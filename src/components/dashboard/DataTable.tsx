@@ -339,6 +339,8 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                   // Limit how many suggestions we show in the main table
                   const allSuggestions = Array.isArray(row.suggestions) ? row.suggestions : [];
                   const selectedIndex = allSuggestions.findIndex(s => s.is_selected);
+                  const totalSuggestionsCount = allSuggestions.length;
+                  
 
                   // By default, show the first 3
                   let visibleSuggestions = allSuggestions.slice(0, 3);
@@ -348,7 +350,8 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                     visibleSuggestions = [allSuggestions[selectedIndex], ...allSuggestions.slice(0, 2)];
                   }
 
-                  const hiddenCount = Math.max(0, allSuggestions.length - visibleSuggestions.length);
+                  const totalVisibleSuggestions = visibleSuggestions.length
+                  const hiddenCount = Math.max(0, totalSuggestionsCount - totalVisibleSuggestions);
 
                   return (
                     <TableRow key={index}>
@@ -427,24 +430,36 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                       </TableCell>
                       <TableCell>{formatLatency(row.estimated_latency_ms)}</TableCell>
                       <TableCell>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                      <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setSelectedSuggestions({
-                                row,
-                                isOpen: true
-                              })}
+                        <div className="flex items-center gap-1.5">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setSelectedSuggestions({ row, isOpen: true })}
+                                aria-label={
+                                  hiddenCount > 0
+                                    ? `Open suggestions (${totalVisibleSuggestions} shown of ${totalSuggestionsCount})`
+                                    : `Open suggestions (${totalSuggestionsCount})`
+                                }
                               className="flex items-center justify-center transition-colors cursor-pointer hover:bg-primary hover:text-primary-foreground"
                             >
                               {getSuggestionIcon(row.suggestion_type)}
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p>{getSuggestionTooltip(row.suggestion_type)}</p>
+                            <p>
+                              {hiddenCount > 0
+                                ? `${totalVisibleSuggestions} shown / ${totalSuggestionsCount} total`
+                                : `${totalSuggestionsCount} suggestion${totalSuggestionsCount === 1 ? "" : "s"}`}
+                            </p>
                           </TooltipContent>
                         </Tooltip>
+                         {/* Small count badge next to the icon */}
+                          <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground tabular-nums">
+                            {totalSuggestionsCount}
+                          </span>
+                        </div>
                       </TableCell>
                       {/* New Cost – show only visibleSuggestions (+ optional +N more) */}
                       <TableCell>
@@ -454,17 +469,14 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                               key={idx}
                               variant="secondary"
                               className={`text-xs ${
-                                suggestion.is_selected ? 'bg-yellow-100 text-yellow-800 border-yellow-300' : ''
+                                suggestion.is_selected
+                                  ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                                  : ''
                               }`}
                             >
                               {formatCurrency(suggestion.estimated_new_cpr_usd)}
                             </Badge>
                           ))}
-                          {hiddenCount > 0 && (
-                            <Badge variant="outline" className="text-xs text-muted-foreground">
-                              +{hiddenCount} more
-                            </Badge>
-                          )}
                         </div>
                       </TableCell>
 
