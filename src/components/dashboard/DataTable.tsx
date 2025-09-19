@@ -278,7 +278,7 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
 
               <colgroup>
                 <col className="w-[20ch]" />                           {/* User ID */}
-                <col className="w-[21ch]" />                           {/* Prompt Requests (narrower than before) */}
+                <col className="w-[24ch]" />                           {/* Prompt Requests (narrower than before) */}
                 <col className="w-[8ch]"  />                           {/* Quality */}
                 <col className="w-[12ch]" />                           {/* Model Name */}
                 <col className="w-[14ch]" />                           {/* Timestamp */}
@@ -286,7 +286,7 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                 <col className="w-[10ch]" />                           {/* Est. Latency */}
                 <col className="w-[12ch]" />                           {/* Top Suggestions (icon) */}
                 <col className="w-[9ch]" />                            {/* New Cost */}
-                <col className="w-[9ch]" />                            {/* New Latency */}
+                <col className="w-[10ch]" />                            {/* New Latency */}
                 <col className="w-[9ch]" />                            {/* New Quality */}
                 <col className="w-[10ch]" />                           {/* Time Saved */}
                 <col className="w-[10ch]" />                           {/* Cost Saved */}
