@@ -285,21 +285,44 @@ async def get_request_status(
     request_id: str,
     supabase: Client = Depends(get_supabase),
 ):
+    # 1) Base request row
     res = (
         supabase.table("requests")
         .select(
             "id,user_id,prompt,"
             "predicted_latency,predicted_tokens,predicted_complexity,"
             "executed_at,suggestions,status,priority,request_note,"
+            "selected_child_request_id,"   # ✅ include this
             "updated_at,created_at"
         )
         .eq("id", request_id)
         .single()
         .execute()
     )
+
     if not res.data:
         raise HTTPException(status_code=404, detail="Request not found")
-    return res.data
+
+    row = res.data
+
+    # 2) If it's a parent with a selected child, look up savings
+    if row.get("selected_child_request_id"):
+        sv = (
+            supabase.table("request_estimate_savings")
+            .select("parent_id, child_id, time_saved_ms, cost_saved_usd")
+            .eq("parent_id", row["id"])
+            .single()
+            .execute()
+            .data
+        )
+        if sv:
+            # Attach to the response
+            row["time_saved_ms"] = sv["time_saved_ms"]
+            # Cast numeric → float if Supabase returns it as string
+            row["cost_saved_usd"] = float(sv["cost_saved_usd"])
+            row["selected_child_request_id"] = sv["child_id"]
+
+    return row
 
 @router.get("/requests", tags=["Requests"])
 async def list_requests(
@@ -358,7 +381,7 @@ async def list_requests(
                 it["cost_saved_usd"] = s["cost_saved_usd"]  # numeric may come back as string; ok
 
     return {
-        "items": res.data or [],
+        "items": items,
         "total": res.count or 0,
         "page": page,
         "page_size": page_size,
@@ -400,7 +423,6 @@ async def metrics(
     mytd = _calc(rows_ytd)
 
     return {"7d": m7, "30d": m30, "ytd": mytd}
-from fastapi import HTTPException
 
 @router.post("/requests/{parent_id}/select_child/{child_id}", tags=["Requests"])
 async def select_child(
