@@ -277,17 +277,17 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
           <Table className="table-fixed w-full">
 
               <colgroup>
-                <col className="w-[22ch]" />                           {/* User ID */}
-                <col className="w-[26ch]" />   {/* Prompt Requests (narrower than before) */}
+                <col className="w-[20ch]" />                           {/* User ID */}
+                <col className="w-[24ch]" />                           {/* Prompt Requests (narrower than before) */}
                 <col className="w-[8ch]"  />                           {/* Quality */}
                 <col className="w-[12ch]" />                           {/* Model Name */}
-                <col className="w-[16ch]" />                           {/* Timestamp */}
+                <col className="w-[12ch]" />                           {/* Timestamp */}
                 <col className="w-[10ch]" />                           {/* Est. CPR */}
                 <col className="w-[10ch]" />                           {/* Est. Latency */}
-                <col className="w-[14ch]" />                            {/* Top Suggestions (icon) */}
-                <col className="w-[10ch]" />                           {/* New Cost */}
-                <col className="w-[10ch]" />                           {/* New Latency */}
-                <col className="w-[10ch]" />                           {/* New Quality */}
+                <col className="w-[12ch]" />                           {/* Top Suggestions (icon) */}
+                <col className="w-[8ch]" />                            {/* New Cost */}
+                <col className="w-[8ch]" />                            {/* New Latency */}
+                <col className="w-[8ch]" />                            {/* New Quality */}
                 <col className="w-[10ch]" />                           {/* Time Saved */}
                 <col className="w-[10ch]" />                           {/* Cost Saved */}
               </colgroup>
