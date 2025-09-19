@@ -8,6 +8,15 @@ from datetime import date, datetime, timezone
 
 router = APIRouter()
 
+def _resolve_client_id(sb: Client, ident, current_user):
+    if ident:
+        try:
+            user = require_known_user_by_email(sb, email=ident.email, provided_user_id=ident.user_id)
+            return user.get("client_id")
+        except Exception:
+            return None  # not allow-listed yet -> return empty profile
+    return (current_user or {}).get("client_id")
+
 def _utcnow_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 

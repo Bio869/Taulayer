@@ -111,15 +111,24 @@ def get_user_by_email(supabase: Client, email: str) -> Optional[Dict]:
     )
     return (res.data or [None])[0]
 
-def link_provided_user_id_if_missing(supabase: Client, user_id: str, provided_user_id: str) -> None:
-    """Attach provided_user_id the first time we see this identity."""
-    with_retry(lambda:
-        supabase.table("users")
-        .update({"provided_user_id": provided_user_id})
-        .eq("id", user_id)
-        .is_("provided_user_id", None)
-        .execute()
-    )
+def link_provided_user_id_if_missing(
+    supabase: Client, user_id: str, provided_user_id: str
+) -> None:
+    """
+    Attach/replace provided_user_id the first time we see this identity.
+    Overwrite if current value is NULL or a seeded placeholder (prefix 'seed_').
+    """
+    try:
+        with_retry(lambda:
+            supabase.table("users")
+            .update({"provided_user_id": provided_user_id})
+            .eq("id", user_id)
+            # AND (provided_user_id IS NULL OR provided_user_id LIKE 'seed_%')
+            .or_("provided_user_id.is.null,provided_user_id.like.seed_%")
+            .execute()
+        )
+    except Exception as e:
+        logger.debug("link_provided_user_id_if_missing: %s", e)
 
 def require_known_user_by_email(
     supabase: Client,

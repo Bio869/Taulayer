@@ -338,13 +338,13 @@ async def list_requests(
     page_size: int = Query(25, ge=1, le=200),
 ):
     sel = (
-        supabase.table("requests")
-        .select(
-            "id,user_id,prompt,priority,status,"
-            "predicted_latency,predicted_tokens,predicted_complexity,"
-            "executed_at,suggestions,updated_at,created_at",
-            count="exact"  # to get total rows
-        )
+    supabase.table("requests")
+    .select(
+        "id,user_id,prompt,priority,status,"
+        "predicted_latency,predicted_tokens,predicted_complexity,"
+        "executed_at,suggestions,updated_at,created_at",
+        count="exact"
+        ).is_("parent_request_id", None)  # <- only parents
     )
 
     if user_id_like:
