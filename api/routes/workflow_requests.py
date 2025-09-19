@@ -377,8 +377,8 @@ async def list_requests(
             s = by_parent.get(it["id"])
             if s:
                 it["selected_child_request_id"] = s["child_id"]
-                it["time_saved_ms"] = s["time_saved_ms"]
-                it["cost_saved_usd"] = s["cost_saved_usd"]  # numeric may come back as string; ok
+                it["time_saved_ms"] = int(s["time_saved_ms"])
+                it["cost_saved_usd"] = float(s["cost_saved_usd"])  # numeric may come back as string; ok
 
     return {
         "items": items,
