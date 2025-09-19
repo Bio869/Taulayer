@@ -1,24 +1,20 @@
 # api/main.py
-
 import logging
 from datetime import datetime
 
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 from supabase import Client
 
 from config import settings
 from db.dependencies import get_supabase
 from routes.workflow_requests import router as requests_router
-from fastapi.exceptions import RequestValidationError
-from routes.client import router as client_router
 
-# configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ---- App setup ----
 app = FastAPI(
     title=settings.api_title,
     version=settings.api_version,
@@ -34,26 +30,40 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 logger.info(f"CORS allow_origins: {settings.cors_origins}")
 
-# ---- Global Exception Handling ----
+# Mount routers
+app.include_router(requests_router, prefix="/api")
+
+# EITHER import directly...
+# from routes.client import router as client_router
+# app.include_router(client_router, prefix="/api")
+
+# ...OR use a guarded import (recommended while iterating)
+try:
+    from routes.client import router as client_router
+    app.include_router(client_router, prefix="/api")
+    print("✅ client router loaded")
+except Exception as e:
+    print(f"⚠️ client router failed to load: {e}")
+
+# -------- Global exception handlers --------
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
-    """
-    Ensure API consistently returns a clean JSON error for unauthorized/unverified users.
-    """
     logger.warning(f"HTTP {exc.status_code} - {exc.detail} - Path: {request.url}")
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"error": exc.detail, "status": "error"}
-    )
+    return JSONResponse(status_code=exc.status_code, content={"error": exc.detail, "status": "error"})
 
-# ---- Routes ----
-app.include_router(requests_router, prefix="/api")
-app.include_router(client_router,   prefix="/api")
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.exception(f"Unhandled error at {request.url}: {exc}")
+    return JSONResponse(status_code=500, content={"error": "Internal server error", "status": "error"})
 
-# ---- Healthcheck and Monitoring ----
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    logger.warning(f"HTTP 422 - Validation error - Path: {request.url} - {exc.errors()}")
+    return JSONResponse(status_code=422, content={"error": "Invalid request payload", "status": "error"})
+
+# -------- Health & root --------
 @app.get("/healthcheck", tags=["Monitoring"])
 async def healthcheck():
     return JSONResponse(status_code=200, content={"status": "ok"})
@@ -64,35 +74,15 @@ async def ping():
 
 @app.get("/")
 async def root():
-    return {
-        "message": "Welcome to Taulayer AI Optimization API",
-        "version": settings.api_version,
-    }
+    return {"message": "Welcome to Taulayer AI Optimization API", "version": settings.api_version}
 
 @app.get("/health")
 async def health(supabase: Client = Depends(get_supabase)):
     try:
         _ = supabase.table("users").select("id").limit(1).execute()
-        return {
-            "status": "healthy",
-            "database": "connected",
-            "timestamp": datetime.utcnow().isoformat(),
-        }
+        return {"status": "healthy", "database": "connected", "timestamp": datetime.utcnow().isoformat()}
     except Exception as e:
-        return {
-            "status": "unhealthy",
-            "error": str(e),
-            "timestamp": datetime.utcnow().isoformat(),
-        }
-@app.exception_handler(Exception)
-async def unhandled_exception_handler(request: Request, exc: Exception):
-    logger.exception(f"Unhandled error at {request.url}: {exc}")
-    return JSONResponse(status_code=500, content={"error": "Internal server error", "status": "error"})
-
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    logger.warning(f"HTTP 422 - Validation error - Path: {request.url} - {exc.errors()}")
-    return JSONResponse(status_code=422, content={"error": "Invalid request payload", "status": "error"})
+        return {"status": "unhealthy", "error": str(e), "timestamp": datetime.utcnow().isoformat()}
 
 if __name__ == "__main__":
     import uvicorn
