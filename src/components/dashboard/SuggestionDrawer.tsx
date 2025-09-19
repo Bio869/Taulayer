@@ -134,13 +134,9 @@ export const SuggestionDrawer = ({
 
             {/* Suggestions */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-medium">Optimized Suggestions</h3>
-                <span className="text-[11px] px-2 py-0.5 rounded-md
-                                bg-yellow-100 text-yellow-800 border border-yellow-300">
-                  {row.suggestions.length}
-                </span>
-              </div>
+              <h3 className="text-sm font-medium">
+                {row.suggestions.length} Optimized Suggestions
+              </h3>
               
               {row.suggestions.map((suggestion, index) => {
                 const costSavings = row.estimated_cpr_usd - suggestion.estimated_new_cpr_usd;
