@@ -40,7 +40,7 @@ def get_user_by_id(supabase: Client, user_id: UUID) -> Optional[Dict]:
     """Fetch a user by internal UUID. Returns a dict or None."""
     res = with_retry(lambda:
         supabase.table("users")
-        .select("id, email, client_name, provided_user_id, default_priority")
+        .select("id, email, client_name, provided_user_id, default_priority, client_id")
         .eq("id", str(user_id))
         .limit(1)
         .execute()
@@ -54,7 +54,7 @@ def get_user_by_external_id(supabase: Client, ext_id: str) -> Optional[Dict]:
     """
     res = with_retry(lambda:
         supabase.table("users")
-        .select("id, email, client_name, provided_user_id, default_priority")
+        .select("id, email, client_name, provided_user_id, default_priority, client_id")
         .eq("provided_user_id", ext_id)
         .limit(1)
         .execute()
@@ -89,7 +89,7 @@ def upsert_user_by_external_id(
 
     res = with_retry(lambda:
         supabase.table("users")
-        .select("id, email, client_name, provided_user_id, default_priority")
+        .select("id, email, client_name, provided_user_id, default_priority, client_id")  # + client_id
         .eq("provided_user_id", ext_id)
         .single()
         .execute()
@@ -104,7 +104,7 @@ def get_user_by_email(supabase: Client, email: str) -> Optional[Dict]:
     """Case-insensitive email lookup; existence == allowed."""
     res = with_retry(lambda:
         supabase.table("users")
-        .select("id, email, client_name, provided_user_id, default_priority")
+        .select("id, email, client_name, provided_user_id, default_priority, client_id")
         .ilike("email", email)
         .limit(1)
         .execute()
@@ -242,7 +242,10 @@ def update_after_analysis(
         "predicted_latency": int(predictions.get("latency_ms", 0)),
         "predicted_tokens": int(predictions.get("total_tokens", 0)),
         "predicted_complexity": float(predictions.get("complexity_score", 0.0)),
-        # Optional: snapshot embedding if present
+        "predicted_cost_usd": (
+            float(predictions["predicted_cost_usd"])  # store if route computed it
+            if "predicted_cost_usd" in predictions else None
+        ),
         "vector_embedding": predictions.get("vector_embedding"),
         "status": new_status,
         "updated_at": _utcnow_iso(),

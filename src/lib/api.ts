@@ -1,3 +1,17 @@
+// src/lib/api.ts
+export async function getClientProfile() {
+  return authFetch(`/client/me`);
+}
+export async function updateClientSettings(body: { optimize_for?: string; config_yaml?: string; }) {
+  return authFetch(`/client/settings`, { method: "PUT", body: JSON.stringify(body) });
+}
+export async function updateClientBilling(body: { billing_email?: string; plan?: string; monthly_quota?: number; next_billing_date?: string; }) {
+  return authFetch(`/client/billing`, { method: "PUT", body: JSON.stringify(body) });
+}
+export async function listClientModels() {
+  return authFetch(`/client/models`);
+}
+
 export type ListParams = {
   userId?: string;
   q?: string;

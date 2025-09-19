@@ -172,26 +172,45 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
           pageSize: rowsPerPage,
         });
 
-        const items = (resp.items ?? []).map((r: any) => ({
-          user_id: r.user_id,
-          prompt_request: r.prompt,
-          submitted_prompt: r.prompt, // you can split later if you store both
-          model_name: "N/A",
-          timestamp: r.created_at,
-          estimated_cpr_usd: Math.max(0.01, (r.predicted_tokens ?? 0) * 0.000002), // proxy to $; tune later
-          estimated_latency_ms: r.predicted_latency ?? 0,
-          suggestions: (r.suggestions ?? []).map((s: string) => ({
-            text: s,
-            estimated_new_cpr_usd: Math.max(0.01, (r.predicted_tokens ?? 0) * 0.0000016), // proxy reduced
-            estimated_new_latency_ms: Math.max(1, (r.predicted_latency ?? 0) * 0.7),
-            estimated_new_quality_pct: 50,
-            is_selected: false,
-          })),
-          total_time_saved_ms: 0,     // not in schema yet
-          total_cost_saved_usd: 0,    // not in schema yet
-          prompt_quality_pct: 50,     // not in schema yet
-          suggestion_type: 'none',
-        })) as DataRow[];
+        const items = (resp.items ?? []).map((r: any) => {
+          const opt: string | undefined = r.optimize_for;
+          const suggestionType =
+            (opt === "clarity" ? "clarification" : (opt ?? "none")) as
+              "latency" | "cost" | "clarification" | "none";
+
+          return {
+            user_id: r.user_id,
+            prompt_request: r.prompt,
+            submitted_prompt: r.prompt,
+            model_name: r.model_name ?? "N/A",
+            timestamp: r.created_at,
+
+            // cost & latency estimates (keep your current heuristic for now)
+            estimated_cpr_usd:
+              Math.max(0.01, (r.predicted_tokens ?? 0) * 0.000002),
+            estimated_latency_ms: r.predicted_latency ?? 0,
+
+            // suggestions still mocked locally
+            suggestions: (r.suggestions ?? []).map((s: string) => ({
+              text: s,
+              estimated_new_cpr_usd:
+                Math.max(0.01, (r.predicted_tokens ?? 0) * 0.0000016),
+              estimated_new_latency_ms:
+                Math.max(1, (r.predicted_latency ?? 0) * 0.7),
+              estimated_new_quality_pct: 50,
+              is_selected: false,
+            })),
+
+            // ✅ pull estimate-level savings from API (view-joined in your backend)
+            total_time_saved_ms: Number(r.time_saved_ms ?? 0),
+            total_cost_saved_usd: Number(r.cost_saved_usd ?? 0),
+
+            // placeholder until you wire a real quality metric
+            prompt_quality_pct: 50,
+
+            suggestion_type: suggestionType,
+          } as DataRow;
+        });
 
         setData(items);
       } catch (e) {

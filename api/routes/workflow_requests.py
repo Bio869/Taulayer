@@ -50,7 +50,7 @@ async def create_request(
     or (b) return suggestions when above thresholds.
     """
 
-    # ── 0) Prompt guards ───────────────────────────────────────────────────────
+    # 0) Prompt guards
     if not request.prompt or len(request.prompt) < settings.prompt_min_chars:
         return JSONResponse(
             status_code=422,
@@ -77,27 +77,21 @@ async def create_request(
             },
         )
 
-    # ── Debug-only fault injection ─────────────────────────────────────────────
+    # Debug-only fault injection
     if settings.debug:
         if x_force_db_timeout == "1":
             raise HTTPException(status_code=504, detail="Upstream database timeout (simulated)")
         if x_force_db_unavailable == "1":
             raise HTTPException(status_code=503, detail="Database temporarily unavailable (simulated)")
 
-    # ── 1) Identity (AuthN + AuthZ) ───────────────────────────────────────────
-    # Optional hard-prod requirement: uncomment if you want JWT to be mandatory in prod
-    # if settings.debug is False and not ident:
-    #     raise HTTPException(status_code=401, detail="Missing bearer token")
-
+    # 1) Identity (AuthN + AuthZ)
     if ident and settings.debug is False:
-        # Production strict path: JWT + allow-listed email
         app_user = require_known_user_by_email(
             supabase,
             email=ident.email,
             provided_user_id=ident.user_id,  # optional first-time link
         )
     else:
-        # Dev/tests (DEBUG=True) or no JWT: legacy precedence
         app_user, _notes = resolve_user_identity(
             supabase=supabase,
             request=request,                      # Pydantic model (has .metadata/.user_id)
@@ -106,18 +100,68 @@ async def create_request(
         )
 
     user_id = app_user["id"]
+    # ✅ define client_id **before** using it
+    client_id = app_user.get("client_id")
     priority = request.priority or app_user.get("default_priority", "medium")
 
-    # ── 2) Insert request row (pending → analyzing) ────────────────────────────
+    # 2) Insert request row (pending → analyzing)
     request_id = request_handler.create_request(
         supabase=supabase,
         user_id=user_id,
         prompt=request.prompt,
         priority=priority,
-        # client_name=app_user.get("client_name"),  # uncomment when column exists on requests
+        # client_name=app_user.get("client_name"),
     )
 
-    # ── Notify handling (verified email only) ─────────────────────────────────
+    # Pull client default optimize_for (if not provided)
+    client_opt = None
+    if client_id:
+        cs = (
+            supabase.table("client_settings")
+            .select("optimize_for")
+            .eq("client_id", client_id)
+            .single()
+            .execute()
+            .data
+        )
+        client_opt = (cs or {}).get("optimize_for")
+
+    # Final values to snapshot on the request
+    model_name = getattr(request, "model_name", None)          # optional
+    opt_for    = getattr(request, "optimize_for", None) or client_opt
+
+    # Snapshot client + prefs on the request row
+    supabase.table("requests").update({
+        "client_id": client_id,
+        "model_name": model_name,
+        "optimize_for": opt_for,
+    }).eq("id", request_id).execute()
+
+    # Increment per-month usage counter for the client (simple, race-safe enough for now)
+    if client_id:
+        from datetime import date
+        month = date.today().replace(day=1).isoformat()
+
+        # Ensure row exists
+        supabase.table("client_usage_counters").upsert(
+            {"client_id": client_id, "month": month, "requests_count": 0},
+            on_conflict="client_id,month"
+        ).execute()
+
+        # Fetch current count and bump
+        cur = (
+            supabase.table("client_usage_counters")
+            .select("requests_count")
+            .eq("client_id", client_id).eq("month", month)
+            .single()
+            .execute()
+            .data
+        ) or {"requests_count": 0}
+        supabase.table("client_usage_counters").update(
+            {"requests_count": int(cur.get("requests_count") or 0) + 1}
+        ).eq("client_id", client_id).eq("month", month).execute()
+
+    # Notify handling (verified email only)
     wants_notify = False
     if request.metadata and isinstance(request.metadata, dict):
         wants_notify = bool(request.metadata.get("notify")) or bool(request.metadata.get("notify_me"))
@@ -130,13 +174,13 @@ async def create_request(
         else:
             request_handler.update_request_note(supabase, request_id, "notify_requested_but_no_verified_email")
 
-    # ── 3) Predict metrics ─────────────────────────────────────────────────────
+    # 3) Predict metrics
     predictions = predictor.analyze_request(request.prompt)
     latency_ms = int(predictions.get("latency_ms", 0))
     token_estimate = int(predictions.get("total_tokens", 0))
     complexity = float(predictions.get("complexity_score", 0.0))
 
-    # ── 4) Threshold evaluation ────────────────────────────────────────────────
+    # 4) Threshold evaluation
     decision = predictor.check_thresholds(predictions, priority)
 
     exceeded = getattr(decision, "exceeded_dimensions", []) or []
@@ -214,7 +258,7 @@ async def create_request(
             suggestions=None,
         )
 
-    # ── 5) Blocked → generate actionable suggestions ───────────────────────────
+    # 5) Blocked → suggestions
     tips = suggester.generate_suggestions(request.prompt)
     request_handler.update_after_analysis(
         supabase,
@@ -233,6 +277,7 @@ async def create_request(
         complexity_score=complexity,
         suggestions=suggestion_objs,
     )
+
 
 
 @router.get("/requests/{request_id}")
@@ -294,6 +339,23 @@ async def list_requests(
     start = (page - 1) * page_size
     end = start + page_size - 1
     res = sel.range(start, end).execute()
+    items = res.data or []
+    ids = [it["id"] for it in items]
+    if ids:
+        sv = (
+            supabase.table("request_estimate_savings")
+            .select("parent_id, child_id, time_saved_ms, cost_saved_usd")
+            .in_("parent_id", ids)
+            .execute()
+            .data
+        ) or []
+        by_parent = {row["parent_id"]: row for row in sv}
+        for it in items:
+            s = by_parent.get(it["id"])
+            if s:
+                it["selected_child_request_id"] = s["child_id"]
+                it["time_saved_ms"] = s["time_saved_ms"]
+                it["cost_saved_usd"] = s["cost_saved_usd"]  # numeric may come back as string; ok
 
     return {
         "items": res.data or [],
@@ -338,5 +400,32 @@ async def metrics(
     mytd = _calc(rows_ytd)
 
     return {"7d": m7, "30d": m30, "ytd": mytd}
+from fastapi import HTTPException
+
+@router.post("/requests/{parent_id}/select_child/{child_id}", tags=["Requests"])
+async def select_child(
+    parent_id: str,
+    child_id: str,
+    supabase: Client = Depends(get_supabase),
+):
+    # Verify the child belongs to the parent
+    child = (
+        supabase.table("requests")
+        .select("id,parent_request_id")
+        .eq("id", child_id)
+        .single()
+        .execute()
+        .data
+    ) or {}
+    if child.get("parent_request_id") != parent_id:
+        raise HTTPException(status_code=400, detail="Child does not belong to parent")
+
+    # Mark the selection on the parent
+    supabase.table("requests").update({
+        "selected_child_request_id": child_id,
+        "updated_at": datetime.utcnow().isoformat(),
+    }).eq("id", parent_id).execute()
+
+    return {"ok": True}
 
 print("✅ workflow_requests router successfully loaded")

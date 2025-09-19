@@ -12,6 +12,7 @@ from config import settings
 from db.dependencies import get_supabase
 from routes.workflow_requests import router as requests_router
 from fastapi.exceptions import RequestValidationError
+from routes.client import router as client_router
 
 # configure logging
 logging.basicConfig(level=logging.INFO)

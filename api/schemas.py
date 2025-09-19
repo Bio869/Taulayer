@@ -70,6 +70,8 @@ class RequestCreate(BaseModel):
         populate_by_name=True,  # allow using either 'scheduled_for' or alias 'schedule_at'
         extra="ignore",
     )
+    model_name: Optional[str] = None
+    optimize_for: Optional[Literal['latency','cost','quality','clarity']] = None
 
     @field_validator("scheduled_for", mode="before")
     @classmethod
