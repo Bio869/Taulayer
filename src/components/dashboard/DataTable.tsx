@@ -320,16 +320,10 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                 paginatedData.map((row, index) => {
                   const getSuggestionTooltip = (type: string) => {
                     switch (type) {
-                      case 'latency':
-                        return 'Optimize for speed';
-                      case 'cost':
-                        return 'Optimize for cost';
-                      case 'clarification':
-                        return 'Gain clarity';
-                      case 'none':
-                        return 'View AI suggestions';
-                      default:
-                        return 'View AI suggestions';
+                      case 'latency': return 'Optimize for speed';
+                      case 'cost': return 'Optimize for cost';
+                      case 'clarification': return 'Gain clarity';
+                      case 'none': default: return 'View AI suggestions';
                     }
                   };
 
