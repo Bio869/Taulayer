@@ -64,6 +64,7 @@ class Identity(TypedDict, total=False):
     email: Optional[str]
 
 JWKS_URL = f"{settings.supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json"
+_JWK_CLIENT = jwt.PyJWKClient(JWKS_URL)  # cache client
 
 #_JWKS: dict | None = None
 
@@ -83,21 +84,36 @@ async def get_identity(request: Request) -> Identity:
     if not auth.lower().startswith("bearer "):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
     token = auth.split(" ", 1)[1].strip()
+# 1) Try RS256 via JWKS
     try:
-        # Give PyJWKClient the JWKS URL (not a dict)
-        jwk_client = jwt.PyJWKClient(JWKS_URL)
-        signing_key = jwk_client.get_signing_key_from_jwt(token).key
+        signing_key = _JWK_CLIENT.get_signing_key_from_jwt(token).key
         claims = jwt.decode(
+            token,
+            key=signing_key,
+            algorithms=["RS256"],
+            options={"verify_aud": False},
+        )
+        logger.info("JWT verified using RS256 / JWKS")
+    except Exception as e_rs:
+        # 2) Fallback to HS256 (Supabase default)
+        hs_secret = settings.supabase_key or settings.supabase_service_key
+        if not hs_secret:
+            logger.error("JWT verification failed via RS256 and no HS256 secret configured")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token: JWKS empty and no HS256 secret configured",
+            )
+        try:
+            claims = jwt.decode(
                 token,
-                key=signing_key,
-                algorithms=["RS256"],
+                key=hs_secret,
+                algorithms=["HS256"],
                 options={"verify_aud": False},
-              )
-        # jwks = await _get_jwks()
-        # key = jwt.PyJWKClient(jwks).get_signing_key_from_jwt(token).key
-        # claims = jwt.decode(token, key=key, algorithms=["RS256"], options={"verify_aud": False})
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Invalid token: {e}")
+            )
+            logger.info("JWT verified using HS256 / project secret")
+        except Exception as e_hs:
+            logger.error(f"JWT verification failed via HS256: {e_hs}")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Invalid token: {e_hs}")
     uid = claims.get("sub")
     email = claims.get("email")
     if not (uid or email):

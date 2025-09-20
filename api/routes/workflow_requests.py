@@ -343,8 +343,8 @@ async def list_requests(
         "id,user_id,prompt,priority,status,"
         "predicted_latency,predicted_tokens,predicted_complexity,"
         "executed_at,suggestions,updated_at,created_at",
-        count="exact"
-        ).is_("parent_request_id", "is", "null")  # <- only parents
+        count="exact")
+        .is_("parent_request_id", "null")   # <- only parents
     )
 
     if user_id_like:
