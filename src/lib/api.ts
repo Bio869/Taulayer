@@ -1,5 +1,11 @@
 // src/lib/api.ts
 export async function getClientProfile() {
+  const { supabase } = await import("@/supabaseClient");
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) {
+    // Return an empty profile to avoid a loud toast before login
+    return { client_id: null, billing: {}, settings: {}, usage: { month: null, requests_this_month: 0 }, models: [] };
+  }
   return authFetch(`/client/me`);
 }
 export async function updateClientSettings(body: { optimize_for?: string; config_yaml?: string; }) {
