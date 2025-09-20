@@ -6,7 +6,7 @@ import logging
 import secrets
 from typing import Optional, Dict, List, Tuple, Any, TypedDict
 
-import httpx, jwt
+import jwt
 from fastapi import HTTPException, Security, Depends, Request, status
 from fastapi.security import APIKeyHeader
 from supabase import Client
@@ -38,7 +38,7 @@ async def get_current_user(
     try:
         result = with_retry(lambda:
             supabase.table("users")
-            .select("id, default_priority, provided_user_id, type")
+            .select("id, default_priority, provided_user_id, type, client_id")
             .eq("api_key_hash", api_key_hash)
             .single()
             .execute()
@@ -63,18 +63,20 @@ class Identity(TypedDict, total=False):
     user_id: Optional[str]
     email: Optional[str]
 
-_JWKS: dict | None = None
+JWKS_URL = f"{settings.supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json"
 
-async def _get_jwks() -> dict:
-    global _JWKS
-    if _JWKS:
-        return _JWKS
-    jwks_url = f"{settings.supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json"
-    async with httpx.AsyncClient(timeout=5) as c:
-        r = await c.get(jwks_url)
-        r.raise_for_status()
-        _JWKS = r.json()
-        return _JWKS
+#_JWKS: dict | None = None
+
+# async def _get_jwks() -> dict:
+#     global _JWKS
+#     if _JWKS:
+#         return _JWKS
+#     jwks_url = f"{settings.supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json"
+#     async with httpx.AsyncClient(timeout=5) as c:
+#         r = await c.get(jwks_url)
+#         r.raise_for_status()
+#         _JWKS = r.json()
+#         return _JWKS
 
 async def get_identity(request: Request) -> Identity:
     auth = request.headers.get("authorization", "")
@@ -82,9 +84,18 @@ async def get_identity(request: Request) -> Identity:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
     token = auth.split(" ", 1)[1].strip()
     try:
-        jwks = await _get_jwks()
-        key = jwt.PyJWKClient(jwks).get_signing_key_from_jwt(token).key
-        claims = jwt.decode(token, key=key, algorithms=["RS256"], options={"verify_aud": False})
+        # Give PyJWKClient the JWKS URL (not a dict)
+        jwk_client = jwt.PyJWKClient(JWKS_URL)
+        signing_key = jwk_client.get_signing_key_from_jwt(token).key
+        claims = jwt.decode(
+                token,
+                key=signing_key,
+                algorithms=["RS256"],
+                options={"verify_aud": False},
+              )
+        # jwks = await _get_jwks()
+        # key = jwt.PyJWKClient(jwks).get_signing_key_from_jwt(token).key
+        # claims = jwt.decode(token, key=key, algorithms=["RS256"], options={"verify_aud": False})
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Invalid token: {e}")
     uid = claims.get("sub")
