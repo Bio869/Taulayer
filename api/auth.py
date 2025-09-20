@@ -89,6 +89,9 @@ async def get_identity(request: Request) -> Identity:
     try:
         header = jwt.get_unverified_header(token)
         alg = (header.get("alg") or "").upper()
+        unverified = jwt.decode(token, options={"verify_signature": False})
+        logger.info(f"JWT header alg={alg}, iss={unverified.get('iss')}, sub={unverified.get('sub')}, email={unverified.get('email')}")
+        logger.info(f"JWT verification path: {'RS256' if alg=='RS256' else 'HS256'}")
     except Exception:
         alg = ""
     # Print the token header and the chosen path
@@ -109,6 +112,8 @@ async def get_identity(request: Request) -> Identity:
     except Exception as e_rs:
         # 2) Fallback to HS256 (Supabase default)
         hs_secret = settings.supabase_jwt_secret or settings.supabase_key or settings.supabase_service_key
+        claims = jwt.decode(token, key=hs_secret, algorithms=["HS256"], options={"verify_aud": False})
+        logger.info("JWT verified using HS256 / project JWT secret")
         if not hs_secret:
             logger.error("JWT verification failed via RS256 and no HS256 secret configured")
             raise HTTPException(
