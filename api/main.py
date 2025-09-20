@@ -14,6 +14,7 @@ from routes.workflow_requests import router as requests_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+logger.info(f"JWT secret present? {bool(getattr(settings, 'supabase_jwt_secret', None))}")
 
 app = FastAPI(
     title=settings.api_title,

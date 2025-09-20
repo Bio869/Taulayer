@@ -72,12 +72,17 @@ class Settings(BaseSettings):
             return list(v)
         raise ValueError("CORS_ORIGINS must be a comma-separated string or a list")
 
-    @field_validator("supabase_key", "supabase_service_key", mode="before")
+    @field_validator("supabase_key", "supabase_service_key", "supabase_jwt_secret", mode="before")
     @classmethod
-    def _empty_str_to_none(cls, v):
-        # Treat empty strings as None for optional keys
-        if isinstance(v, str) and v.strip() == "":
-            return None
+    def _strip_and_empty_to_none(cls, v):
+        """
+        Normalize secrets: strip whitespace/newlines; treat empty as None.
+        Prevents 'Signature verification failed' due to hidden spaces.
+        """
+        if isinstance(v, str):
+            v = v.strip()
+            if v == "":
+                return None
         return v
 
     @model_validator(mode="after")
