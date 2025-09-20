@@ -84,8 +84,20 @@ async def get_identity(request: Request) -> Identity:
     if not auth.lower().startswith("bearer "):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
     token = auth.split(" ", 1)[1].strip()
+
+    # Decide by token header alg
+    try:
+        header = jwt.get_unverified_header(token)
+        alg = (header.get("alg") or "").upper()
+    except Exception:
+        alg = ""
+    # Print the token header and the chosen path
+    logger.info(f"JWT header alg={alg}, using {'RS256' if alg == 'RS256' else 'HS256'} path")
+
 # 1) Try RS256 via JWKS
     try:
+        if alg and alg != "RS256":
+            raise Exception("skip_rs256")  # jump to HS256
         signing_key = _JWK_CLIENT.get_signing_key_from_jwt(token).key
         claims = jwt.decode(
             token,
@@ -96,7 +108,7 @@ async def get_identity(request: Request) -> Identity:
         logger.info("JWT verified using RS256 / JWKS")
     except Exception as e_rs:
         # 2) Fallback to HS256 (Supabase default)
-        hs_secret = settings.supabase_key or settings.supabase_service_key
+        hs_secret = settings.supabase_jwt_secret or settings.supabase_key or settings.supabase_service_key
         if not hs_secret:
             logger.error("JWT verification failed via RS256 and no HS256 secret configured")
             raise HTTPException(

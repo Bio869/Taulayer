@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     supabase_url: str = Field(..., alias="SUPABASE_URL")
     supabase_key: Optional[str] = Field(default=None, alias="SUPABASE_KEY")
     supabase_service_key: Optional[str] = Field(default=None, alias="SUPABASE_SERVICE_KEY")
+    supabase_jwt_secret: Optional[str] = Field(default=None, alias="SUPABASE_JWT_SECRET")
 
     # ── Prompt guards ──────────────────────────────────────────────────────────
     prompt_max_chars: int = Field(default=4000, alias="PROMPT_MAX_CHARS")
