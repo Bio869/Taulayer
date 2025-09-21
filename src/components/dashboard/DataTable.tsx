@@ -282,7 +282,7 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
               <col className="w-[14ch]" /> {/* Timestamp */}
               <col className="w-[10ch]" /> {/* Est. CPR */}
               <col className="w-[10ch]" /> {/* Est. Latency */}
-              <col className="w-[16ch]" /> {/* Top Suggestions */}
+              <col className="w-[12ch]" /> {/* Top Suggestions */}
               <col className="w-[10ch]" /> {/* New Cost */}
               <col className="w-[10ch]" /> {/* New Latency */}
               <col className="w-[10ch]" /> {/* New Quality */}
