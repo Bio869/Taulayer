@@ -1,4 +1,3 @@
-// src/components/dashboard/DataTable.tsx
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import {
@@ -33,11 +32,11 @@ export interface DataRow {
   model_name: string;
   timestamp: string;
 
-  // Estimates shown pre-execution
+  // Estimates shown pre-execution (costs already scaled down 10× for display)
   estimated_cpr_usd: number;
   estimated_latency_ms: number;
 
-  // Suggestions shown in the table
+  // Suggestions shown in the table (costs already scaled down 10× for display)
   suggestions: Array<{
     text: string;
     estimated_new_cpr_usd: number;
@@ -46,15 +45,17 @@ export interface DataRow {
     is_selected?: boolean;
   }>;
 
-  // Savings & quality (from API/view joins)
+  // Savings computed from the *selected* suggestion only
   total_time_saved_ms: number;
   total_cost_saved_usd: number;
+
+  // Display quality (0–100%)
   prompt_quality_pct: number;
 
   // “Optimize for …” type
   suggestion_type: "latency" | "cost" | "clarification" | "none";
 
-  // Row-level selection flags (optional, from API)
+  // Optional row-level selection flags from API
   has_selected_child?: boolean;
   selected_child_request_id?: string | null;
 }
@@ -106,7 +107,7 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
         const rand = (min: number, max: number) =>
           min + Math.random() * (max - min);
 
-        const items: DataRow[] = (resp.items ?? []).map((r: any) => {
+        const rows: DataRow[] = (resp.items ?? []).map((r: any) => {
           // Map optimize_for → display type
           const opt: string | undefined = r.optimize_for;
           const suggestion_type =
@@ -116,20 +117,21 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
               | "clarification"
               | "none";
 
-          // Compute pre-exec estimates
+          // -------- Estimates (with 10× down-scaling for costs) --------
           const estTokens = Number(r.predicted_tokens ?? 0);
-          // NOTE: if your pricing is per 1k tokens, use 0.000002 instead of 0.002.
-          const computedCpr =
-            estTokens > 0
-              ? Math.max(0.01, estTokens * 0.002)
-              : rand(0.05, 0.10);
-          const estimated_cpr_usd = +computedCpr.toFixed(2);
 
-          const baseLatencyMs = Number.isFinite(+r.predicted_latency)
+          // If your pricing is per 1k tokens, use 0.000002 here instead of 0.002.
+          const baseCprRaw =
+            estTokens > 0 ? Math.max(0.01, estTokens * 0.002) : rand(0.05, 0.10);
+
+          // ↓ requirement #3: divide costs by 10
+          const estimated_cpr_usd = +(baseCprRaw / 10).toFixed(2);
+
+          const estimated_latency_ms = Number.isFinite(+r.predicted_latency)
             ? Number(r.predicted_latency)
             : Math.round(rand(800, 2600));
 
-          // Quality (%). Prefer backend, else derive from predicted_complexity, else mid-range random
+          // -------- Quality (%). Prefer backend; else derive; else mid-range random --------
           const prompt_quality_pct =
             r.quality_lift_pct != null
               ? Number(r.quality_lift_pct)
@@ -143,7 +145,7 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                 )
               : Math.round(rand(30, 70));
 
-          // Suggestions (strings in r.suggestions) -> 3 rows with variability
+          // -------- Suggestions (strings) → 3 variants with variability --------
           const rawSuggestions: string[] =
             Array.isArray(r.suggestions) && r.suggestions.length > 0
               ? r.suggestions
@@ -152,14 +154,17 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
           const suggestions = rawSuggestions.slice(0, 3).map((text) => {
             const cf = rand(0.65, 0.95); // cost factor
             const lf = rand(0.50, 0.85); // latency factor
-            const qd = rand(2, 12); // quality delta
+            const qd = rand(2, 12);      // quality delta
+
+            // Compute new cost from the already-scaled estimated_cpr_usd
+            const newCostScaled = +(estimated_cpr_usd * cf).toFixed(2);
 
             return {
               text,
-              estimated_new_cpr_usd: +(estimated_cpr_usd * cf).toFixed(2),
+              estimated_new_cpr_usd: newCostScaled, // (scaled by 10×)
               estimated_new_latency_ms: Math.max(
                 100,
-                Math.round(baseLatencyMs * lf)
+                Math.round(estimated_latency_ms * lf)
               ),
               estimated_new_quality_pct: Math.max(
                 0,
@@ -169,11 +174,29 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
             };
           });
 
-          // If backend signals a selected child, highlight ONE suggestion randomly
-          if (r.selected_child_request_id && suggestions.length > 0) {
+          // If backend signals a selected child, mark ONE suggestion randomly
+          if (
+            (r.has_selected_child || r.selected_child_request_id) &&
+            suggestions.length > 0
+          ) {
             const idx = Math.floor(Math.random() * suggestions.length);
             suggestions[idx].is_selected = true;
           }
+
+          // -------- requirement #1 & #2: savings only from *selected* suggestion --------
+          const chosen =
+            suggestions.find((s) => s.is_selected) ?? null;
+
+          const total_cost_saved_usd = chosen
+            ? Math.max(
+                0,
+                +(estimated_cpr_usd - chosen.estimated_new_cpr_usd).toFixed(3)
+              )
+            : 0;
+
+          const total_time_saved_ms = chosen
+            ? Math.max(0, estimated_latency_ms - chosen.estimated_new_latency_ms)
+            : 0;
 
           return {
             user_id: r.user_id,
@@ -182,13 +205,12 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
             model_name: r.model_name ?? "N/A",
             timestamp: r.created_at,
 
-            estimated_cpr_usd,
-            estimated_latency_ms: baseLatencyMs,
+            estimated_cpr_usd,            // scaled 10×
+            estimated_latency_ms,
             suggestions,
 
-            // savings from backend view/join
-            total_time_saved_ms: Number(r.time_saved_ms ?? 0),
-            total_cost_saved_usd: Number(r.cost_saved_usd ?? 0),
+            total_time_saved_ms,          // from selected suggestion
+            total_cost_saved_usd,         // from selected suggestion
 
             prompt_quality_pct,
             suggestion_type,
@@ -197,10 +219,10 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
               r.has_selected_child || r.selected_child_request_id
             ),
             selected_child_request_id: r.selected_child_request_id ?? null,
-          } as DataRow;
+          };
         });
 
-        setData(items);
+        setData(rows);
       } catch (e) {
         console.error(e);
         setData([]);
@@ -212,7 +234,7 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
     load();
   }, [filters, refreshKey]);
 
-  // Show more precision for small amounts
+  // Formatting helpers
   const formatCurrency = (amount: number): string =>
     amount < 0.1 ? `$${amount.toFixed(3)}` : `$${amount.toFixed(2)}`;
 
@@ -277,16 +299,16 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
             <colgroup>
               <col className="w-[20ch]" /> {/* User ID */}
               <col className="w-[24ch]" /> {/* Prompt Requests */}
-              <col className="w-[8ch]" /> {/* Quality */}
+              <col className="w-[8ch]" />  {/* Quality */}
               <col className="w-[12ch]" /> {/* Model Name */}
               <col className="w-[14ch]" /> {/* Timestamp */}
               <col className="w-[10ch]" /> {/* Est. CPR */}
               <col className="w-[10ch]" /> {/* Est. Latency */}
-              <col className="w-[12ch]" /> {/* Top Suggestions */}
+              <col className="w-[16ch]" /> {/* Top Suggestions (icon only) */}
               <col className="w-[10ch]" /> {/* New Cost */}
               <col className="w-[10ch]" /> {/* New Latency */}
               <col className="w-[10ch]" /> {/* New Quality */}
-              <col className="w-[12ch]" /> {/* Time Saved */}
+              <col className="w-[11ch]" /> {/* Time Saved */}
               <col className="w-[10ch]" /> {/* Cost Saved */}
             </colgroup>
 
@@ -322,39 +344,25 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                 paginatedData.map((row, index) => {
                   const getSuggestionTooltip = (type: string) => {
                     switch (type) {
-                      case "latency":
-                        return "Optimize for speed";
-                      case "cost":
-                        return "Optimize for cost";
-                      case "clarification":
-                        return "Gain clarity";
+                      case "latency":       return "Optimize for speed";
+                      case "cost":          return "Optimize for cost";
+                      case "clarification": return "Gain clarity";
                       case "none":
-                      default:
-                        return "View AI suggestions";
+                      default:              return "View AI suggestions";
                     }
                   };
 
                   const getSuggestionIcon = () => <Bot className="h-4 w-4" />;
 
-                  const allSuggestions = Array.isArray(row.suggestions)
-                    ? row.suggestions
-                    : [];
-                  const selectedIndex = allSuggestions.findIndex(
-                    (s) => s.is_selected
-                  );
+                  const all = Array.isArray(row.suggestions) ? row.suggestions : [];
+                  const selectedIndex = all.findIndex((s) => s.is_selected);
 
-                  // By default, show the first 3
-                  let visibleSuggestions = allSuggestions.slice(0, 3);
-
-                  // If the selected suggestion isn't in the first 3, include it
+                  // By default, show the first 3; if the selected isn't in them, bring it to the front.
+                  let visibleSuggestions = all.slice(0, 3);
                   if (selectedIndex >= 3) {
-                    visibleSuggestions = [
-                      allSuggestions[selectedIndex],
-                      ...allSuggestions.slice(0, 2),
-                    ];
+                    visibleSuggestions = [all[selectedIndex], ...all.slice(0, 2)];
                   }
 
-                  // Row-level selection state → tint the whole row
                   const rowSelected = Boolean(
                     row.has_selected_child ||
                       row.selected_child_request_id ||
@@ -376,9 +384,7 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() =>
-                              copyToClipboard(row.user_id, "User ID")
-                            }
+                            onClick={() => copyToClipboard(row.user_id, "User ID")}
                           >
                             <Copy className="h-3 w-3" />
                           </Button>
@@ -405,9 +411,7 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() =>
-                              copyToClipboard(row.prompt_request, "Prompt")
-                            }
+                            onClick={() => copyToClipboard(row.prompt_request, "Prompt")}
                             title="Copy full prompt"
                           >
                             <Copy className="h-3 w-3" />
@@ -444,14 +448,14 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                             {formatCurrency(row.estimated_cpr_usd)}
                           </TooltipTrigger>
                           <TooltipContent>
-                            Predicted pre-execution cost
+                            Predicted pre-execution cost (scaled)
                           </TooltipContent>
                         </Tooltip>
                       </TableCell>
 
                       <TableCell>{formatLatency(row.estimated_latency_ms)}</TableCell>
 
-                      {/* Top Suggestions: only the button (NO “Selected” pill) */}
+                      {/* Top Suggestions (icon only; no “Selected” pill here) */}
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Tooltip>
@@ -460,14 +464,9 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                                 variant="outline"
                                 size="sm"
                                 onClick={() =>
-                                  setSelectedSuggestions({
-                                    row,
-                                    isOpen: true,
-                                  })
+                                  setSelectedSuggestions({ row, isOpen: true })
                                 }
-                                aria-label={getSuggestionTooltip(
-                                  row.suggestion_type
-                                )}
+                                aria-label={getSuggestionTooltip(row.suggestion_type)}
                                 className="flex items-center justify-center transition-colors cursor-pointer hover:bg-primary hover:text-primary-foreground"
                               >
                                 {getSuggestionIcon()}
@@ -480,7 +479,7 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                         </div>
                       </TableCell>
 
-                      {/* New Cost – show only visibleSuggestions (+ optional +N more) */}
+                      {/* New Cost – show visible suggestions; highlight selected in yellow */}
                       <TableCell>
                         <div className="space-y-1">
                           {visibleSuggestions.map((s, idx) => (
@@ -499,7 +498,7 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                         </div>
                       </TableCell>
 
-                      {/* New Latency – same 3-item slice */}
+                      {/* New Latency – visible suggestions */}
                       <TableCell>
                         <div className="space-y-1">
                           {visibleSuggestions.map((s, idx) => (
@@ -518,7 +517,7 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                         </div>
                       </TableCell>
 
-                      {/* New Quality – same 3-item slice */}
+                      {/* New Quality – visible suggestions */}
                       <TableCell>
                         <div className="space-y-1">
                           {visibleSuggestions.map((s, idx) => (
@@ -537,24 +536,26 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                         </div>
                       </TableCell>
 
+                      {/* requirement #2 */}
                       <TableCell>
                         <Tooltip>
                           <TooltipTrigger>
                             {formatLatency(row.total_time_saved_ms)}
                           </TooltipTrigger>
                           <TooltipContent>
-                            Original latency – selected latency
+                            Est. Latency − New Latency (selected)
                           </TooltipContent>
                         </Tooltip>
                       </TableCell>
 
+                      {/* requirement #1 */}
                       <TableCell>
                         <Tooltip>
                           <TooltipTrigger>
                             {formatCurrency(row.total_cost_saved_usd)}
                           </TooltipTrigger>
                           <TooltipContent>
-                            Original cost – selected cost
+                            Est. CPR − New Cost (selected)
                           </TooltipContent>
                         </Tooltip>
                       </TableCell>
@@ -570,8 +571,7 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
             Showing {(currentPage - 1) * rowsPerPage + 1} to{" "}
-            {Math.min(currentPage * rowsPerPage, data.length)} of {data.length}{" "}
-            results
+            {Math.min(currentPage * rowsPerPage, data.length)} of {data.length} results
           </p>
 
           <div className="flex items-center gap-2">
