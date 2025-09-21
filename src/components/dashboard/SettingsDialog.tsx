@@ -159,77 +159,62 @@ function SettingsBody({
         </div>
       </TabsContent>
 
-      {/* Billing tab */}
-      <TabsContent value="billing" className="space-y-6 mt-0">
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="plan">Current Plan</Label>
-              <Select value={plan} onValueChange={(v) => setPlan(v as Plan)}>
-                <SelectTrigger id="plan">
-                  <SelectValue placeholder="Select plan" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="free">Free</SelectItem>
-                  <SelectItem value="starter">Starter</SelectItem>
-                  <SelectItem value="professional">Professional</SelectItem>
-                  <SelectItem value="enterprise">Enterprise</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="usage">Monthly Usage</Label>
-              <Input
-                id="usage"
-                value={`${monthlyUsage.toLocaleString()} / ${monthlyQuota.toLocaleString()} requests`}
-                disabled
-              />
-            </div>
-          </div>
+{/* Billing tab */}
+<TabsContent value="billing" className="space-y-6 mt-0">
+  <div className="space-y-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="space-y-2">
+        <Label htmlFor="plan">Current Plan</Label>
+        <Select value={plan} onValueChange={(v) => setPlan(v as Plan)}>
+          <SelectTrigger id="plan">
+            <SelectValue placeholder="Select plan" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="free">Free</SelectItem>
+            <SelectItem value="starter">Starter</SelectItem>
+            <SelectItem value="professional">Professional</SelectItem>
+            <SelectItem value="enterprise">Enterprise</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="usage">Monthly Usage</Label>
+        <Input
+          id="usage"
+          value={`${monthlyUsage.toLocaleString()} / ${monthlyQuota.toLocaleString()} requests`}
+          disabled
+        />
+      </div>
+    </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="billingEmail">Billing Email</Label>
-              <Input
-                id="billingEmail"
-                type="email"
-                value={billingEmail}
-                onChange={(e) => setBillingEmail(e.target.value)}
-                placeholder="billing@company.com"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="nextBilling">Next Billing Date</Label>
-              <Input
-                id="nextBilling"
-                type="date"
-                value={nextBillingDate}
-                onChange={(e) => setNextBillingDate(e.target.value)}
-              />
-            </div>
-          </div>
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="space-y-2">
+        <Label htmlFor="billingEmail">Billing Email</Label>
+        <Input
+          id="billingEmail"
+          type="email"
+          value={billingEmail}
+          onChange={(e) => setBillingEmail(e.target.value)}
+          placeholder="billing@company.com"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="nextBilling">Next Billing Date</Label>
+        <Input
+          id="nextBilling"
+          type="date"
+          value={nextBillingDate}
+          onChange={(e) => setNextBillingDate(e.target.value)}
+        />
+      </div>
+    </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="monthlyQuota">Monthly Quota</Label>
-              <Input
-                id="monthlyQuota"
-                type="number"
-                min={0}
-                value={monthlyQuota}
-                onChange={(e) => setMonthlyQuota(Number(e.target.value || 0))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>&nbsp;</Label>
-              <div className="flex gap-2">
-                <Button variant="outline" className="flex-1">Download Invoice</Button>
-                <Button className="flex-1" onClick={onSaveBilling}>Save Billing</Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </TabsContent>
+    <div className="flex gap-2">
+      <Button variant="outline" className="flex-1">Download Invoice</Button>
+      <Button className="flex-1" onClick={onSaveBilling}>Save Billing</Button>
+    </div>
+  </div>
+</TabsContent>
 
       {/* Config tab */}
       <TabsContent value="config" className="space-y-6 mt-0">
