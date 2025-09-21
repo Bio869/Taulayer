@@ -362,11 +362,11 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                   );
 
                   return (
-                    <TableRow
-                      key={index}
-                      className={rowSelected ? "bg-amber-50/40" : ""}
-                    >
-                      <TableCell>
+                    // <TableRow
+                    //   key={index}
+                    //   className={rowSelected ? "bg-amber-50/40" : ""}
+                    // >
+                    //   <TableCell>
                         <div className="flex items-center gap-2">
                           <code className="text-sm bg-muted px-2 py-1 rounded">
                             {row.user_id.length > 14
