@@ -19,12 +19,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Copy,
-  Bot,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, Bot } from "lucide-react";
 import { DashboardFilters } from "@/pages/Dashboard";
 import { SuggestionDrawer } from "./SuggestionDrawer";
 import { useToast } from "@/hooks/use-toast";
@@ -108,10 +103,13 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
           pageSize: rowsPerPage,
         });
 
+        const rand = (min: number, max: number) =>
+          min + Math.random() * (max - min);
+
         const items: DataRow[] = (resp.items ?? []).map((r: any) => {
           // Map optimize_for → display type
           const opt: string | undefined = r.optimize_for;
-          const suggestionType =
+          const suggestion_type =
             (opt === "clarity" ? "clarification" : (opt ?? "none")) as
               | "latency"
               | "cost"
@@ -120,40 +118,19 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
 
           // Compute pre-exec estimates
           const estTokens = Number(r.predicted_tokens ?? 0);
-          const estLatency = Number(r.predicted_latency ?? 0);
-          const estimated_cpr_usd = Math.max(0.01, estTokens * 0.000002);
+          // NOTE: if your pricing is per 1k tokens, use 0.000002 instead of 0.002.
+          const computedCpr =
+            estTokens > 0
+              ? Math.max(0.01, estTokens * 0.002)
+              : rand(0.05, 0.10);
+          const estimated_cpr_usd = +computedCpr.toFixed(2);
 
-          // Build suggestions (you can replace with real per-child rows later)
-          const suggestions = (r.suggestions ?? []).map((s: string) => ({
-            text: s,
-            estimated_new_cpr_usd: Math.max(0.01, estTokens * 0.0000016),
-            estimated_new_latency_ms: Math.max(1, estLatency * 0.7),
-            estimated_new_quality_pct: 50,
-            is_selected: false,
-          })) as DataRow["suggestions"];
+          const baseLatencyMs = Number.isFinite(+r.predicted_latency)
+            ? Number(r.predicted_latency)
+            : Math.round(rand(800, 2600));
 
-          // If the backend says a child was selected but we only have strings,
-          // mark ONE suggestion heuristically as selected (fastest).
-          if (r.selected_child_request_id && suggestions.length > 0) {
-            let minIdx = 0;
-            for (let i = 1; i < suggestions.length; i++) {
-              if (
-                suggestions[i].estimated_new_latency_ms <
-                suggestions[minIdx].estimated_new_latency_ms
-              ) {
-                minIdx = i;
-              }
-            }
-            suggestions[minIdx].is_selected = true;
-          }
-
-          // Savings and quality from API/view joins
-          const timeSavedMs = Number(r.time_saved_ms ?? 0);
-          const costSavedUsd = Number(r.cost_saved_usd ?? 0);
-
-          // If backend provides row-level quality lift, use it;
-          // otherwise derive a % from predicted_complexity in [0..1] → higher % = better
-          const promptQualityPct =
+          // Quality (%). Prefer backend, else derive from predicted_complexity, else mid-range random
+          const prompt_quality_pct =
             r.quality_lift_pct != null
               ? Number(r.quality_lift_pct)
               : r.predicted_complexity != null
@@ -164,7 +141,39 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                     Math.round((1 - Number(r.predicted_complexity)) * 100)
                   )
                 )
-              : 50;
+              : Math.round(rand(30, 70));
+
+          // Suggestions (strings in r.suggestions) -> 3 rows with variability
+          const rawSuggestions: string[] =
+            Array.isArray(r.suggestions) && r.suggestions.length > 0
+              ? r.suggestions
+              : ["Be specific", "Use bullet points", "Provide an example"];
+
+          const suggestions = rawSuggestions.slice(0, 3).map((text) => {
+            const cf = rand(0.65, 0.95); // cost factor
+            const lf = rand(0.50, 0.85); // latency factor
+            const qd = rand(2, 12); // quality delta
+
+            return {
+              text,
+              estimated_new_cpr_usd: +(estimated_cpr_usd * cf).toFixed(2),
+              estimated_new_latency_ms: Math.max(
+                100,
+                Math.round(baseLatencyMs * lf)
+              ),
+              estimated_new_quality_pct: Math.max(
+                0,
+                Math.min(100, Math.round(prompt_quality_pct + qd))
+              ),
+              is_selected: false,
+            };
+          });
+
+          // If backend signals a selected child, highlight ONE suggestion randomly
+          if (r.selected_child_request_id && suggestions.length > 0) {
+            const idx = Math.floor(Math.random() * suggestions.length);
+            suggestions[idx].is_selected = true;
+          }
 
           return {
             user_id: r.user_id,
@@ -174,25 +183,21 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
             timestamp: r.created_at,
 
             estimated_cpr_usd,
-            estimated_latency_ms: estLatency,
-
+            estimated_latency_ms: baseLatencyMs,
             suggestions,
 
-            // ✅ single (non-duplicated) assignment of savings
-            total_time_saved_ms: timeSavedMs,
-            total_cost_saved_usd: costSavedUsd,
+            // savings from backend view/join
+            total_time_saved_ms: Number(r.time_saved_ms ?? 0),
+            total_cost_saved_usd: Number(r.cost_saved_usd ?? 0),
 
-            // ✅ quality mapped from API or derived
-            prompt_quality_pct: promptQualityPct,
+            prompt_quality_pct,
+            suggestion_type,
 
-            suggestion_type: suggestionType,
-
-            // Optional row-level selection flags from API, used by UI highlighting
             has_selected_child: Boolean(
               r.has_selected_child || r.selected_child_request_id
             ),
             selected_child_request_id: r.selected_child_request_id ?? null,
-          };
+          } as DataRow;
         });
 
         setData(items);
@@ -207,19 +212,12 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
     load();
   }, [filters, refreshKey]);
 
-  const formatCurrency = (amount: number): string => {
-    if (amount < 0.01) {
-      return `$${amount.toFixed(3)}`;
-    }
-    return `$${amount.toFixed(2)}`;
-  };
+  // Show more precision for small amounts
+  const formatCurrency = (amount: number): string =>
+    amount < 0.1 ? `$${amount.toFixed(3)}` : `$${amount.toFixed(2)}`;
 
-  const formatLatency = (ms: number): string => {
-    if (ms < 1000) {
-      return `${Math.round(ms)} ms`;
-    }
-    return `${(ms / 1000).toFixed(1)} s`;
-  };
+  const formatLatency = (ms: number): string =>
+    ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1)} s`;
 
   const formatTimestamp = (isoString: string): string => {
     const date = new Date(isoString);
@@ -246,7 +244,6 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
     (currentPage - 1) * rowsPerPage,
     currentPage * rowsPerPage
   );
-
   const totalPages = Math.max(1, Math.ceil(data.length / rowsPerPage));
 
   if (loading) {
@@ -339,7 +336,6 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
 
                   const getSuggestionIcon = () => <Bot className="h-4 w-4" />;
 
-                  // Limit how many suggestions we show in the main table
                   const allSuggestions = Array.isArray(row.suggestions)
                     ? row.suggestions
                     : [];
@@ -358,7 +354,7 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                     ];
                   }
 
-                  // Row-level selection state
+                  // Row-level selection state → tint the whole row
                   const rowSelected = Boolean(
                     row.has_selected_child ||
                       row.selected_child_request_id ||
@@ -453,24 +449,11 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                         </Tooltip>
                       </TableCell>
 
-                      <TableCell>
-                        {formatLatency(row.estimated_latency_ms)}
-                      </TableCell>
+                      <TableCell>{formatLatency(row.estimated_latency_ms)}</TableCell>
 
+                      {/* Top Suggestions: only the button (NO “Selected” pill) */}
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          {/* Yellow “Selected” pill if any suggestion chosen */}
-                          <span
-                            className={cn(
-                              "inline-flex items-center rounded px-1.5 py-0.5 text-[11px]",
-                              rowSelected
-                                ? "bg-amber-100 text-amber-800 ring-1 ring-amber-300"
-                                : "bg-muted text-muted-foreground"
-                            )}
-                          >
-                            {rowSelected ? "Selected" : "—"}
-                          </span>
-
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
@@ -500,19 +483,17 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                       {/* New Cost – show only visibleSuggestions (+ optional +N more) */}
                       <TableCell>
                         <div className="space-y-1">
-                          {visibleSuggestions.map((suggestion, idx) => (
+                          {visibleSuggestions.map((s, idx) => (
                             <Badge
                               key={idx}
                               variant="secondary"
                               className={cn(
                                 "text-xs",
-                                suggestion.is_selected &&
+                                s.is_selected &&
                                   "bg-yellow-100 text-yellow-800 border-yellow-300"
                               )}
                             >
-                              {formatCurrency(
-                                suggestion.estimated_new_cpr_usd
-                              )}
+                              {formatCurrency(s.estimated_new_cpr_usd)}
                             </Badge>
                           ))}
                         </div>
@@ -521,19 +502,17 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                       {/* New Latency – same 3-item slice */}
                       <TableCell>
                         <div className="space-y-1">
-                          {visibleSuggestions.map((suggestion, idx) => (
+                          {visibleSuggestions.map((s, idx) => (
                             <Badge
                               key={idx}
                               variant="secondary"
                               className={cn(
                                 "text-xs",
-                                suggestion.is_selected &&
+                                s.is_selected &&
                                   "bg-yellow-100 text-yellow-800 border-yellow-300"
                               )}
                             >
-                              {formatLatency(
-                                suggestion.estimated_new_latency_ms
-                              )}
+                              {formatLatency(s.estimated_new_latency_ms)}
                             </Badge>
                           ))}
                         </div>
@@ -542,17 +521,17 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                       {/* New Quality – same 3-item slice */}
                       <TableCell>
                         <div className="space-y-1">
-                          {visibleSuggestions.map((suggestion, idx) => (
+                          {visibleSuggestions.map((s, idx) => (
                             <Badge
                               key={idx}
                               variant="secondary"
                               className={cn(
                                 "text-xs",
-                                suggestion.is_selected &&
+                                s.is_selected &&
                                   "bg-yellow-100 text-yellow-800 border-yellow-300"
                               )}
                             >
-                              {suggestion.estimated_new_quality_pct}%
+                              {s.estimated_new_quality_pct}%
                             </Badge>
                           ))}
                         </div>
