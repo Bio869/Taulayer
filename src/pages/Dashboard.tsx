@@ -1,10 +1,35 @@
+// src/pages/Dashboard.tsx
 import { DataTable } from "@/components/dashboard/DataTable";
 import { ControlPanel } from "@/components/dashboard/ControlPanel";
 import { MetricsOverview } from "@/components/dashboard/MetricsOverview";
 import { SettingsDialog } from "@/components/dashboard/SettingsDialog";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
+import { getClientProfile } from "@/lib/api";
+import { supabase } from "@/supabaseClient";
+
+export function HeaderBar() {
+  const [me, setMe] = useState<any>(null);
+  const [email, setEmail] = useState<string | null>(null);
+
+useEffect(() => {
+    // 1) fetch client + user context from backend
+    getClientProfile().then(setMe).catch((e) => console.error("client/me failed", e));
+    // 2) also read email directly from Supabase session (fallback)
+    supabase.auth.getSession().then(({ data }) => setEmail(data.session?.user?.email ?? null));
+  }, []);
+
+  const clientName = me?.client?.name ?? "—";
+  const userEmail = me?.user?.email ?? email ?? "";
+
+  return (
+    <div className="flex items-center gap-3">
+      <span className="font-semibold">{clientName}</span>
+      <span className="text-muted-foreground">{userEmail}</span>
+    </div>
+  );
+}
 
 export interface DashboardFilters {
   userId: string;
@@ -46,15 +71,9 @@ const Dashboard = () => {
 
             {/* Right side */}
             <div className="ml-auto flex items-center gap-2 sm:gap-3 shrink-0">
-              {/* Company + email: allow truncation so row never wraps */}
-              <div className="text-right leading-tight text-xs sm:text-sm
-                              max-w-[42vw] sm:max-w-none overflow-hidden">
-                <div className="font-medium text-foreground truncate">
-                  Cybersecurity Corp
-                </div>
-                <div className="text-muted-foreground truncate">
-                  john.doe@company.com
-                </div>
+              {/* Company + email (live from /api/client/me or Supabase session) */}
+              <div className="text-right leading-tight text-xs sm:text-sm max-w-[42vw] sm:max-w-none overflow-hidden">
+                <HeaderBar />
               </div>
 
               <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
@@ -64,6 +83,7 @@ const Dashboard = () => {
                   size="icon"
                   title="Log Out"
                   className="h-8 w-8 sm:h-9 sm:w-9"
+                  onClick={async () => { try { await supabase.auth.signOut(); window.location.reload(); } catch {} }}
                 >
                   <LogOut className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>

@@ -2,63 +2,80 @@
 from fastapi import APIRouter, Depends, HTTPException
 from db.dependencies import get_supabase
 from auth import get_current_user, maybe_get_identity
-from services.request_handler import require_known_user_by_email
 from supabase import Client
-from datetime import date, datetime, timezone
+from datetime import date
 
 router = APIRouter()
 
-def _resolve_client_id(sb: Client, ident, current_user):
-    if ident:
-        try:
-            user = require_known_user_by_email(sb, email=ident.email, provided_user_id=ident.user_id)
-            return user.get("client_id")
-        except Exception:
-            return None  # not allow-listed yet -> return empty profile
-    return (current_user or {}).get("client_id")
-
-def _utcnow_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
-def _resolve_client_id(supabase: Client, ident, current_user):
+def _resolve_client_ctx(supabase: Client, ident: dict | None, current_user: dict | None) -> dict:
     """
-    Prefer Supabase JWT (ident) → map to users row (require_known_user_by_email),
-    else fall back to API-key user (current_user).
+    Return {'client_id','client_name','user_email'} for either:
+      - Supabase JWT user (email) or
+      - API-key user (client_id on the row)
     """
-    if ident:
-        user = require_known_user_by_email(
-            supabase,
-            email=ident.email,
-            provided_user_id=ident.user_id  # optional link on first sighting
-        )
-        return user.get("client_id")
-    return (current_user or {}).get("client_id")
+    # 1) Supabase-auth user (email from JWT)
+    if ident and isinstance(ident, dict) and ident.get("email"):
+        u = (
+            supabase.table("users")
+            .select("client_id, client_name, email")
+            .ilike("email", ident["email"])
+            .single()
+            .execute()
+            .data
+        ) or {}
+        if u.get("client_id"):
+            return {
+                "client_id": u["client_id"],
+                "client_name": u.get("client_name"),
+                "user_email": ident["email"],
+            }
+
+    # 2) API-key user
+    if current_user and current_user.get("client_id"):
+        c = (
+            supabase.table("clients")
+            .select("name")
+            .eq("id", current_user["client_id"])
+            .single()
+            .execute()
+            .data
+        ) or {}
+        return {
+            "client_id": current_user["client_id"],
+            "client_name": c.get("name"),
+            "user_email": None,
+        }
+
+    raise HTTPException(status_code=404, detail="User has no client")
 
 @router.get("/client/me")
 async def get_client_profile(
     supabase: Client = Depends(get_supabase),
-    ident = Depends(maybe_get_identity),
-    current_user = Depends(get_current_user),
+    ident=Depends(maybe_get_identity),            # ✅ allow Supabase JWT users
+    current_user=Depends(get_current_user),       # ✅ or API-key users
 ):
-    client_id = _resolve_client_id(supabase, ident, current_user)
-    if not client_id:
-        # Return an empty profile instead of 404 so the dialog can render gracefully
-        return {"client_id": None, "billing": {}, "settings": {}, "usage": {"month": None, "requests_this_month": 0}, "models": []}
+    ctx = _resolve_client_ctx(supabase, ident, current_user)
+    client_id = ctx["client_id"]
 
-    billing = (supabase.table("client_billing").select("*").eq("client_id", client_id).single().execute().data) or {}
-    settings = (supabase.table("client_settings").select("*").eq("client_id", client_id).single().execute().data) or {}
+    billing = (supabase.table("client_billing")
+               .select("*").eq("client_id", client_id).single().execute().data) or {}
+    settings = (supabase.table("client_settings")
+                .select("*").eq("client_id", client_id).single().execute().data) or {}
 
     month = date.today().replace(day=1).isoformat()
     usage = (supabase.table("client_usage_counters")
              .select("requests_count")
-             .eq("client_id", client_id).eq("month", month).single().execute().data) or {"requests_count": 0}
+             .eq("client_id", client_id).eq("month", month)
+             .single().execute().data) or {"requests_count": 0}
 
     models = (supabase.table("client_models")
               .select("model_key,display_name,is_active")
-              .eq("client_id", client_id).eq("is_active", True).execute().data) or []
+              .eq("client_id", client_id).eq("is_active", True)
+              .execute().data) or []
 
     return {
-        "client_id": client_id,
+        "client": {"id": client_id, "name": ctx.get("client_name")},
+        "user":   {"email": ctx.get("user_email")},
         "billing": billing,
         "settings": settings,
         "usage": {"month": month, "requests_this_month": usage.get("requests_count", 0)},
@@ -69,52 +86,47 @@ async def get_client_profile(
 async def update_client_settings(
     payload: dict,
     supabase: Client = Depends(get_supabase),
-    ident = Depends(maybe_get_identity),
-    current_user = Depends(get_current_user),
+    ident=Depends(maybe_get_identity),
+    current_user=Depends(get_current_user),
 ):
-    client_id = _resolve_client_id(supabase, ident, current_user)
-    if not client_id:
-        raise HTTPException(status_code=404, detail="User has no client")
-
+    ctx = _resolve_client_ctx(supabase, ident, current_user)
     update = {}
-    if "config_yaml" in payload:   update["config_yaml"] = payload["config_yaml"]
-    if "optimize_for" in payload:  update["optimize_for"] = payload["optimize_for"]
-    if not update: return {"ok": True}
-
-    update["updated_at"] = _utcnow_iso()
-    supabase.table("client_settings").upsert({"client_id": client_id, **update}, on_conflict="client_id").execute()
+    if "config_yaml" in payload:  update["config_yaml"] = payload["config_yaml"]
+    if "optimize_for" in payload: update["optimize_for"] = payload["optimize_for"]
+    if not update:
+        return {"ok": True}
+    update["updated_at"] = supabase.functions.now()
+    supabase.table("client_settings").upsert(
+        {"client_id": ctx["client_id"], **update}, on_conflict="client_id"
+    ).execute()
     return {"ok": True}
 
 @router.put("/client/billing")
 async def update_client_billing(
     payload: dict,
     supabase: Client = Depends(get_supabase),
-    ident = Depends(maybe_get_identity),
-    current_user = Depends(get_current_user),
+    ident=Depends(maybe_get_identity),
+    current_user=Depends(get_current_user),
 ):
-    client_id = _resolve_client_id(supabase, ident, current_user)
-    if not client_id:
-        raise HTTPException(status_code=404, detail="User has no client")
-
-    update = {}
-    for k in ("billing_email","plan","monthly_quota","next_billing_date"):
-        if k in payload: update[k] = payload[k]
-    if not update: return {"ok": True}
-
-    update["updated_at"] = _utcnow_iso()
-    supabase.table("client_billing").upsert({"client_id": client_id, **update}, on_conflict="client_id").execute()
+    ctx = _resolve_client_ctx(supabase, ident, current_user)
+    update = {k: v for k, v in payload.items() if k in ("billing_email","plan","monthly_quota","next_billing_date")}
+    if not update:
+        return {"ok": True}
+    update["updated_at"] = supabase.functions.now()
+    supabase.table("client_billing").upsert(
+        {"client_id": ctx["client_id"], **update}, on_conflict="client_id"
+    ).execute()
     return {"ok": True}
 
 @router.get("/client/models")
 async def list_client_models(
     supabase: Client = Depends(get_supabase),
-    ident = Depends(maybe_get_identity),
-    current_user = Depends(get_current_user),
+    ident=Depends(maybe_get_identity),
+    current_user=Depends(get_current_user),
 ):
-    client_id = _resolve_client_id(supabase, ident, current_user)
-    if not client_id:
-        raise HTTPException(status_code=404, detail="User has no client")
+    ctx = _resolve_client_ctx(supabase, ident, current_user)
     rows = (supabase.table("client_models")
             .select("model_key,display_name,is_active")
-            .eq("client_id", client_id).execute().data) or []
+            .eq("client_id", ctx["client_id"])
+            .execute().data) or []
     return rows
