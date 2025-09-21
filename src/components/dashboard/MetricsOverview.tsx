@@ -1,4 +1,4 @@
-// metricsoverview.tsx 
+// src/components/dashboard/MetricsOverview.tsx
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,13 @@ interface MetricsData {
 type PeriodType = "7d" | "30d" | "ytd";
 interface MetricsOverviewProps {
   data?: Record<PeriodType, MetricsData>;
+}
+
+function fmtDuration(ms: number) {
+  if (ms < 1_000) return `${Math.round(ms)} ms`;
+  if (ms < 60_000) return `${(ms / 1_000).toFixed(1)} s`;
+  if (ms < 3_600_000) return `${Math.floor(ms / 60_000)} m`;
+  return `${(ms / 3_600_000).toFixed(1)} h`;
 }
 
 export const MetricsOverview = ({ data: initial }: MetricsOverviewProps) => {
@@ -64,7 +71,7 @@ export const MetricsOverview = ({ data: initial }: MetricsOverviewProps) => {
   const formatCurrency = (v: number) => `$${v.toFixed(2)}`;
 
   const metrics = [
-    { title: "Total Time Saved", value: formatTime(current.totalTimeSaved), icon: Clock,     color: "text-blue-600",   bg: "bg-blue-50",   change: loading ? "Loading…" : "+23% vs last period" },
+    { title: "Total Time Saved", value: fmtDuration(current.totalTimeSaved), icon: Clock,     color: "text-blue-600",   bg: "bg-blue-50",   change: loading ? "Loading…" : "+23% vs last period" },
     { title: "Total Cost Saved", value: formatCurrency(current.totalCostSaved), icon: DollarSign, color: "text-green-600",  bg: "bg-green-50",  change: loading ? "Loading…" : "+15% vs last period" },
     { title: "Average Quality Lift", value: `${current.averageQualityLift}%`, icon: Target,   color: "text-purple-600", bg: "bg-purple-50", change: loading ? "Loading…" : "+12% vs last period" },
     { title: "Total Optimizations", value: String(current.totalOptimizations), icon: TrendingUp, color: "text-orange-600", bg: "bg-orange-50", change: loading ? "Loading…" : "+31% vs last period" },

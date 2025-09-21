@@ -4,16 +4,30 @@ export async function getClientProfile() {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.access_token) {
     // Return an empty profile to avoid a loud toast before login
-    return { client_id: null, billing: {}, settings: {}, usage: { month: null, requests_this_month: 0 }, models: [] };
+    return {
+      client_id: null,
+      billing: {},
+      settings: {},
+      usage: { month: null, requests_this_month: 0 },
+      models: [],
+    };
   }
   return authFetch(`/client/me`);
 }
-export async function updateClientSettings(body: { optimize_for?: string; config_yaml?: string; }) {
+
+export async function updateClientSettings(body: { optimize_for?: string; config_yaml?: string }) {
   return authFetch(`/client/settings`, { method: "PUT", body: JSON.stringify(body) });
 }
-export async function updateClientBilling(body: { billing_email?: string; plan?: string; monthly_quota?: number; next_billing_date?: string; }) {
+
+export async function updateClientBilling(body: {
+  billing_email?: string;
+  plan?: string;
+  monthly_quota?: number;
+  next_billing_date?: string;
+}) {
   return authFetch(`/client/billing`, { method: "PUT", body: JSON.stringify(body) });
 }
+
 export async function listClientModels() {
   return authFetch(`/client/models`);
 }
@@ -36,13 +50,12 @@ export async function authFetch(path: string, init: RequestInit = {}) {
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    ...(init.headers as Record<string,string> ?? {}),
+    ...(init.headers as Record<string, string>) ?? {},
   };
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
   const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
   if (!res.ok) {
-    // let caller see shape
     let body: any = {};
     try { body = await res.json(); } catch { /* ignore */ }
     const err = new Error(body?.error || res.statusText);
@@ -64,6 +77,38 @@ export async function listRequests(params: ListParams) {
   return authFetch(`/requests?${q.toString()}`);
 }
 
-export async function getMetrics() {
-  return authFetch(`/metrics`);
+// ─── Metrics adapter ───────────────────────────────────────────────────────────
+
+export type PeriodType = "7d" | "30d" | "ytd";
+export type MetricsData = {
+  totalTimeSaved: number;      // ms
+  totalCostSaved: number;      // USD
+  averageQualityLift: number;  // %
+  totalOptimizations: number;  // count
+};
+
+/**
+ * Normalizes backend /metrics response:
+ * {
+ *   since_7d:  { time_ms, cost_usd, quality_lift_pct?, optimizations },
+ *   since_30d: { ... },
+ *   since_ytd: { ... }
+ * }
+ * or already keyed as "7d"|"30d"|"ytd"
+ */
+export async function getMetrics(): Promise<Record<PeriodType, MetricsData>> {
+  const raw = await authFetch(`/metrics`);
+
+  const pick = (x: any): MetricsData => ({
+    totalTimeSaved: Number(x?.time_ms ?? 0),
+    totalCostSaved: Number(x?.cost_usd ?? 0),
+    averageQualityLift: Number(x?.quality_lift_pct ?? 0),
+    totalOptimizations: Number(x?.optimizations ?? 0),
+  });
+
+  return {
+    "7d":  pick(raw["7d"]  ?? raw["since_7d"]),
+    "30d": pick(raw["30d"] ?? raw["since_30d"]),
+    "ytd": pick(raw["ytd"] ?? raw["since_ytd"]),
+  };
 }

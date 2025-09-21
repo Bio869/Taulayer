@@ -21,6 +21,52 @@ from services.request_handler import require_known_user_by_email
 
 router = APIRouter()
 
+def _sum_savings_since(supabase: Client, since: datetime):
+    # 1) executed children in window
+    executed = (supabase.table("requests")
+        .select("id,parent_request_id,executed_at")
+        .not_.is_("executed_at", "null")
+        .gte("executed_at", since.replace(tzinfo=timezone.utc).isoformat())
+        .execute()
+    ).data or []
+
+    if not executed:
+        return {"time_ms": 0, "cost_usd": 0.0, "optimizations": 0}
+
+    parent_ids = list({row["parent_request_id"] for row in executed if row["parent_request_id"]})
+
+        # 2) parents’ selected child
+    parents = (supabase.table("requests")
+        .select("id,selected_child_request_id")
+        .in_("id", parent_ids)
+        .execute()
+    ).data or []
+
+    selected_child_ids = {p["selected_child_request_id"] for p in parents if p["selected_child_request_id"]}
+    # 3) keep only executed + selected
+    eligible_child_ids = [row["id"] for row in executed if row["id"] in selected_child_ids]
+    if not eligible_child_ids:
+        return {"time_ms": 0, "cost_usd": 0.0, "optimizations": 0}
+
+    # 4) sum from the view used by the table
+    rows = (supabase.table("request_estimate_savings")
+        .select("time_saved_ms,cost_saved_usd,child_id")
+        .in_("child_id", eligible_child_ids)
+        .execute()
+    ).data or []
+
+    time_ms = sum(r.get("time_saved_ms", 0) or 0 for r in rows)
+    cost_usd = float(sum((r.get("cost_saved_usd", 0) or 0) for r in rows))
+    return {"time_ms": time_ms, "cost_usd": round(cost_usd, 4), "optimizations": len(eligible_child_ids)}
+
+@router.get("/metrics")
+def metrics(supabase: Client = Depends(get_supabase)):
+    now = datetime.now(timezone.utc)
+    return {
+        "since_7d":  _sum_savings_since(supabase, now - timedelta(days=7)),
+        "since_30d": _sum_savings_since(supabase, now - timedelta(days=30)),
+        "since_ytd": _sum_savings_since(supabase, datetime(now.year, 1, 1, tzinfo=timezone.utc)),
+    }
 
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
@@ -338,14 +384,18 @@ async def list_requests(
     page_size: int = Query(25, ge=1, le=200),
 ):
     sel = (
-    supabase.table("requests")
-    .select(
-        "id,user_id,prompt,priority,status,"
-        "predicted_latency,predicted_tokens,predicted_complexity,"
-        "executed_at,suggestions,updated_at,created_at",
-        count="exact")
-        .is_("parent_request_id", "null")   # <- only parents
+        supabase.table("requests")
+        .select(
+            "id,user_id,prompt,priority,status,"
+            "predicted_latency,predicted_tokens,predicted_complexity,"
+            "executed_at,suggestions,updated_at,created_at,"
+            "selected_child_request_id,parent_request_id",
+            count="exact"  # to get total rows
+        )
     )
+
+    # Parents only (the top-level requests)
+    sel = sel.is_("parent_request_id", "null")
 
     if user_id_like:
         sel = sel.ilike("user_id", f"%{user_id_like}%")
@@ -354,7 +404,8 @@ async def list_requests(
 
     # ordering
     sort_col = sort_by if sort_by in {
-        "created_at","updated_at","predicted_latency","predicted_tokens","predicted_complexity","priority","status"
+        "created_at", "updated_at", "predicted_latency",
+        "predicted_tokens", "predicted_complexity", "priority", "status"
     } else "created_at"
     sel = sel.order(sort_col, desc=(sort_dir != "asc"))
 
@@ -362,7 +413,10 @@ async def list_requests(
     start = (page - 1) * page_size
     end = start + page_size - 1
     res = sel.range(start, end).execute()
+
     items = res.data or []
+
+    # Attach estimated savings for parents that have them
     ids = [it["id"] for it in items]
     if ids:
         sv = (
@@ -377,11 +431,16 @@ async def list_requests(
             s = by_parent.get(it["id"])
             if s:
                 it["selected_child_request_id"] = s["child_id"]
-                it["time_saved_ms"] = int(s["time_saved_ms"])
-                it["cost_saved_usd"] = float(s["cost_saved_usd"])  # numeric may come back as string; ok
+                it["time_saved_ms"] = s["time_saved_ms"]
+                # Supabase can return numeric as string; coerce to float
+                it["cost_saved_usd"] = float(s["cost_saved_usd"])
+
+    # ✅ add a boolean your FE can use for quick styling
+    for it in items:
+        it["has_selected_child"] = bool(it.get("selected_child_request_id"))
 
     return {
-        "items": items,
+        "items": items,            # <-- IMPORTANT: return the enriched list
         "total": res.count or 0,
         "page": page,
         "page_size": page_size,
