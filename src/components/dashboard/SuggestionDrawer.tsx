@@ -1,3 +1,4 @@
+// src/components/dashboard/SuggestionDrawer.tsx
 import React from "react";
 import {
   Sheet,

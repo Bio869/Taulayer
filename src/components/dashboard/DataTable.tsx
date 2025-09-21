@@ -140,7 +140,7 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                   0,
                   Math.min(
                     100,
-                    Math.round((1 - Number(r.predicted_complexity)) * 100)
+                    Math.round((Number(r.predicted_complexity)) * 100)
                   )
                 )
               : Math.round(rand(30, 70));
@@ -304,11 +304,11 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
               <col className="w-[14ch]" /> {/* Timestamp */}
               <col className="w-[10ch]" /> {/* Est. CPR */}
               <col className="w-[10ch]" /> {/* Est. Latency */}
-              <col className="w-[16ch]" /> {/* Top Suggestions (icon only) */}
+              <col className="w-[12ch]" /> {/* Top Suggestions (icon only) */}
               <col className="w-[10ch]" /> {/* New Cost */}
-              <col className="w-[10ch]" /> {/* New Latency */}
+              <col className="w-[11ch]" /> {/* New Latency */}
               <col className="w-[10ch]" /> {/* New Quality */}
-              <col className="w-[11ch]" /> {/* Time Saved */}
+              <col className="w-[10ch]" /> {/* Time Saved */}
               <col className="w-[10ch]" /> {/* Cost Saved */}
             </colgroup>
 
@@ -427,7 +427,7 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                             </Badge>
                           </TooltipTrigger>
                           <TooltipContent>
-                            Prompt clarity/quality (0–100%)
+                            Prompt clarity
                           </TooltipContent>
                         </Tooltip>
                       </TableCell>

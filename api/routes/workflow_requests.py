@@ -35,7 +35,7 @@ def _sum_savings_since(supabase: Client, since: datetime):
 
     parent_ids = list({row["parent_request_id"] for row in executed if row["parent_request_id"]})
 
-        # 2) parents’ selected child
+    # 2) parents’ selected child
     parents = (supabase.table("requests")
         .select("id,selected_child_request_id")
         .in_("id", parent_ids)
@@ -43,29 +43,37 @@ def _sum_savings_since(supabase: Client, since: datetime):
     ).data or []
 
     selected_child_ids = {p["selected_child_request_id"] for p in parents if p["selected_child_request_id"]}
+
     # 3) keep only executed + selected
     eligible_child_ids = [row["id"] for row in executed if row["id"] in selected_child_ids]
     if not eligible_child_ids:
         return {"time_ms": 0, "cost_usd": 0.0, "optimizations": 0}
 
-    # 4) sum from the view used by the table
+    # 4) sum from the same source your table uses
     rows = (supabase.table("request_estimate_savings")
         .select("time_saved_ms,cost_saved_usd,child_id")
         .in_("child_id", eligible_child_ids)
         .execute()
     ).data or []
 
-    time_ms = sum(r.get("time_saved_ms", 0) or 0 for r in rows)
-    cost_usd = float(sum((r.get("cost_saved_usd", 0) or 0) for r in rows))
-    return {"time_ms": time_ms, "cost_usd": round(cost_usd, 4), "optimizations": len(eligible_child_ids)}
+    time_ms = sum(int(r.get("time_saved_ms") or 0) for r in rows)
+    # Supabase NUMERIC may come as str; coerce then round to 2 decimals at the end
+    cost_usd = sum(float(r.get("cost_saved_usd") or 0) for r in rows)
+
+    return {"time_ms": time_ms, "cost_usd": round(cost_usd, 2), "optimizations": len(eligible_child_ids)}
 
 @router.get("/metrics")
 def metrics(supabase: Client = Depends(get_supabase)):
     now = datetime.now(timezone.utc)
+    m7   = _sum_savings_since(supabase, now - timedelta(days=7))
+    m30  = _sum_savings_since(supabase, now - timedelta(days=30))
+    mytd = _sum_savings_since(supabase, datetime(now.year, 1, 1, tzinfo=timezone.utc))
+
+    # Return both key styles; your FE already accepts either
     return {
-        "since_7d":  _sum_savings_since(supabase, now - timedelta(days=7)),
-        "since_30d": _sum_savings_since(supabase, now - timedelta(days=30)),
-        "since_ytd": _sum_savings_since(supabase, datetime(now.year, 1, 1, tzinfo=timezone.utc)),
+        "7d":  m7,            "since_7d":  m7,
+        "30d": m30,           "since_30d": m30,
+        "ytd": mytd,          "since_ytd": mytd,
     }
 
 def _utcnow() -> datetime:
@@ -447,41 +455,6 @@ async def list_requests(
         "sort_by": sort_col,
         "sort_dir": sort_dir,
     }
-
-@router.get("/metrics", tags=["Requests"])
-async def metrics(
-    supabase: Client = Depends(get_supabase),
-):
-    def _range(days: int):
-        since = (datetime.utcnow() - timedelta(days=days)).isoformat()
-        sel = supabase.table("requests").select(
-            "predicted_latency,predicted_tokens,priority,status,executed_at"
-        ).gte("created_at", since)
-        return (sel.execute().data) or []
-
-    def _calc(rows):
-        # toy aggregation: total completed “time saved”/“cost saved” aren’t in schema,
-        # so use simple proxies from predictions for now; you can refine later.
-        total_latency_ms = sum(int(r.get("predicted_latency") or 0) for r in rows)
-        total_tokens = sum(int(r.get("predicted_tokens") or 0) for r in rows)
-        completed = sum(1 for r in rows if r.get("status") == "completed")
-        return {
-            "totalTimeSaved": max(0, total_latency_ms // 2),   # placeholder proxy
-            "totalCostSaved": round(max(0, total_tokens * 0.000002), 2),  # proxy $
-            "averageQualityLift": 0.0,       # no quality metric in schema yet
-            "totalOptimizations": completed, # proxy count
-        }
-
-    m7  = _calc(_range(7))
-    m30 = _calc(_range(30))
-    # Year to date
-    jan1 = datetime(datetime.utcnow().year, 1, 1).isoformat()
-    rows_ytd = (supabase.table("requests").select(
-        "predicted_latency,predicted_tokens,priority,status,executed_at"
-    ).gte("created_at", jan1).execute().data) or []
-    mytd = _calc(rows_ytd)
-
-    return {"7d": m7, "30d": m30, "ytd": mytd}
 
 @router.post("/requests/{parent_id}/select_child/{child_id}", tags=["Requests"])
 async def select_child(
