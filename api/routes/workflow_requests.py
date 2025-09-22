@@ -26,7 +26,7 @@ def _sum_savings_since(supabase: Client, since: datetime):
     executed = (supabase.table("requests")
         .select("id,parent_request_id,executed_at")
         .not_.is_("executed_at", "null")
-        .gte("executed_at", since.replace(tzinfo=timezone.utc).isoformat())
+        .gte("executed_at", since.isoformat())
         .execute()
     ).data or []
 
@@ -56,7 +56,7 @@ def _sum_savings_since(supabase: Client, since: datetime):
     ).data or []
 
     time_ms = sum(int(r.get("time_saved_ms") or 0) for r in rows)
-    cost_usd = float(sum((r.get("cost_saved_usd") or 0) for r in rows))
+    cost_usd = sum(float(r.get("cost_saved_usd") or 0) for r in rows)
 
     # 5) compute average quality lift across the eligible pairs
     p_ids = list({r["parent_id"] for r in rows})
@@ -411,19 +411,21 @@ async def get_request_status(
 
     return row
 
-
 @router.get("/requests", tags=["Requests"])
 async def list_requests(
     supabase: Client = Depends(get_supabase),
     # filters
     user_id_like: Optional[str] = Query(None),
-    q: Optional[str] = Query(None),  # search in prompt
-    # sorting (fallback to created_at desc)
+    q: Optional[str] = Query(None),
+    # sorting
     sort_by: Optional[str] = Query("created_at"),
-    sort_dir: Optional[str] = Query("desc"),  # 'asc'|'desc'
+    sort_dir: Optional[str] = Query("desc"),
     # pagination
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=200),
+    # NEW: viewer identity (for scoping)
+    ident = Depends(maybe_get_identity),
+    current_user = Depends(get_current_user),
 ):
     sel = (
         supabase.table("requests")
@@ -431,39 +433,49 @@ async def list_requests(
             "id,user_id,prompt,priority,status,"
             "predicted_latency,predicted_tokens,predicted_complexity,"
             "executed_at,suggestions,updated_at,created_at,"
-            "selected_child_request_id,parent_request_id",
-            count="exact"  # to get total rows
+            "selected_child_request_id,parent_request_id,client_id",  # include client_id
+            count="exact"
         )
-    )
+    ).is_("parent_request_id", "null")
 
-    # Parents only (the top-level requests)
-    sel = sel.is_("parent_request_id", "null")
+    # 🔒 Multi-tenant default scope: restrict to viewer's client_id when available
+    viewer_client_id = None
+    if current_user and current_user.get("client_id"):
+        viewer_client_id = current_user["client_id"]
+    elif ident and getattr(ident, "email", None):
+        u = (
+            supabase.table("users")
+            .select("client_id")
+            .ilike("email", ident.email)
+            .single()
+            .execute()
+            .data
+        )
+        viewer_client_id = (u or {}).get("client_id")
 
+    if viewer_client_id:
+        sel = sel.eq("client_id", viewer_client_id)
+
+    # Optional additional filters
     if user_id_like:
         sel = sel.ilike("user_id", f"%{user_id_like}%")
     if q:
         sel = sel.ilike("prompt", f"%{q}%")
 
-    # ordering
+    # ordering, pagination as you had...
     sort_col = sort_by if sort_by in {
-        "created_at", "updated_at", "predicted_latency",
-        "predicted_tokens", "predicted_complexity", "priority", "status"
+        "created_at","updated_at","predicted_latency","predicted_tokens","predicted_complexity","priority","status"
     } else "created_at"
     sel = sel.order(sort_col, desc=(sort_dir != "asc"))
-
-    # pagination via range()
-    start = (page - 1) * page_size
-    end = start + page_size - 1
+    start, end = (page - 1) * page_size, (page * page_size) - 1
     res = sel.range(start, end).execute()
 
     items = res.data or []
 
-    # Attach estimated savings only when the parent's CURRENT selection matches
+    # Attach savings only when current selection matches (kept as in your latest)
     ids = [it["id"] for it in items]
     if ids:
-        # collect current selection per parent
         current_sel = {it["id"]: it.get("selected_child_request_id") for it in items}
-
         sv = (
             supabase.table("request_estimate_savings")
             .select("parent_id, child_id, time_saved_ms, cost_saved_usd")
@@ -471,29 +483,22 @@ async def list_requests(
             .execute()
             .data
         ) or []
-
-        # index by (parent_id, child_id)
         by_key = {(r["parent_id"], r["child_id"]): r for r in sv}
-
         for it in items:
-            pid = it["id"]
-            cid = current_sel.get(pid)
+            pid, cid = it["id"], current_sel.get(it["id"])
             s = by_key.get((pid, cid)) if cid else None
-
             if s:
                 it["time_saved_ms"]  = s["time_saved_ms"]
                 it["cost_saved_usd"] = float(s["cost_saved_usd"])
             else:
-                # ensure no phantom savings leak into the FE
                 it.pop("time_saved_ms", None)
                 it.pop("cost_saved_usd", None)
 
-    # boolean flag your FE uses for styling
     for it in items:
         it["has_selected_child"] = bool(it.get("selected_child_request_id"))
 
     return {
-        "items": items,            # <-- IMPORTANT: return the enriched list
+        "items": items,
         "total": res.count or 0,
         "page": page,
         "page_size": page_size,
