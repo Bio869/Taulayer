@@ -175,12 +175,8 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
           });
 
           // If backend signals a selected child, mark ONE suggestion randomly
-          if (
-            (r.has_selected_child || r.selected_child_request_id) &&
-            suggestions.length > 0
-          ) {
-            const idx = Math.floor(Math.random() * suggestions.length);
-            suggestions[idx].is_selected = true;
+          if (r.selected_child_request_id && suggestions.length > 0) {
+            suggestions[Math.floor(Math.random() * suggestions.length)].is_selected = true;
           }
 
           // -------- requirement #1 & #2: savings only from *selected* suggestion --------
