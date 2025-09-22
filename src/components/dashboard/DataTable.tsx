@@ -363,11 +363,7 @@ export const DataTable = ({ filters, refreshKey }: DataTableProps) => {
                     visibleSuggestions = [all[selectedIndex], ...all.slice(0, 2)];
                   }
 
-                  const rowSelected = Boolean(
-                    row.has_selected_child ||
-                      row.selected_child_request_id ||
-                      selectedIndex !== -1
-                  );
+                  const rowSelected = Boolean(row.has_selected_child || row.selected_child_request_id);
 
                   return (
                     <TableRow

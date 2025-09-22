@@ -359,7 +359,6 @@ async def create_request(
     )
 
 
-
 @router.get("/requests/{request_id}")
 async def get_request_status(
     request_id: str,
@@ -372,42 +371,43 @@ async def get_request_status(
             "id,user_id,prompt,"
             "predicted_latency,predicted_tokens,predicted_complexity,"
             "executed_at,suggestions,status,priority,request_note,"
-            "selected_child_request_id,"   # include current selection
+            "selected_child_request_id,"  # keep current selection
             "updated_at,created_at"
         )
         .eq("id", request_id)
         .single()
         .execute()
     )
-
-    if not res.data:
-        raise HTTPException(status_code=404, detail="Request not found")
-
     row = res.data
+    if not row:
+        raise HTTPException(status_code=404, detail="Request not found")
 
     # 2) Attach savings ONLY if the current selection matches a savings row
     cur_sel = row.get("selected_child_request_id")
     if cur_sel:
         sv = (
             supabase.table("request_estimate_savings")
-            .select("parent_id, child_id, time_saved_ms, cost_saved_usd")
-            .eq("parent_id", row["id"])
-            .eq("child_id", cur_sel)  # require match with current selection
+            .select("parent_id,child_id,time_saved_ms,cost_saved_usd")
+            .eq("parent_id", request_id)
+            .eq("child_id", cur_sel)          # <-- require match
             .single()
             .execute()
             .data
         )
         if sv:
             row["time_saved_ms"]  = sv["time_saved_ms"]
-            row["cost_saved_usd"] = float(sv["cost_saved_usd"])
+            # Supabase can return NUMERIC as string
+            try:
+                row["cost_saved_usd"] = float(sv["cost_saved_usd"])
+            except Exception:
+                row["cost_saved_usd"] = 0.0
         else:
-            # No matching savings for the current selection
+            # no matching savings row for current selection -> no savings attached
             row.pop("time_saved_ms", None)
             row.pop("cost_saved_usd", None)
-    else:
-        # No selection → no savings in the response
-        row.pop("time_saved_ms", None)
-        row.pop("cost_saved_usd", None)
+
+    # 3) Convenience boolean for the FE
+    row["has_selected_child"] = bool(cur_sel)
 
     return row
 
