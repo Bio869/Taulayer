@@ -22,7 +22,7 @@ from services.request_handler import require_known_user_by_email
 router = APIRouter()
 
 def _sum_savings_since(supabase: Client, since: datetime):
-    # 1) executed children in window
+    # 1) children executed in window
     executed = (supabase.table("requests")
         .select("id,parent_request_id,executed_at")
         .not_.is_("executed_at", "null")
@@ -31,9 +31,9 @@ def _sum_savings_since(supabase: Client, since: datetime):
     ).data or []
 
     if not executed:
-        return {"time_ms": 0, "cost_usd": 0.0, "optimizations": 0}
+        return {"time_ms": 0, "cost_usd": 0.0, "optimizations": 0, "quality_lift_pct": 0.0}
 
-    parent_ids = list({row["parent_request_id"] for row in executed if row["parent_request_id"]})
+    parent_ids = list({row["parent_request_id"] for row in executed if row.get("parent_request_id")})
 
     # 2) parents’ selected child
     parents = (supabase.table("requests")
@@ -42,25 +42,51 @@ def _sum_savings_since(supabase: Client, since: datetime):
         .execute()
     ).data or []
 
-    selected_child_ids = {p["selected_child_request_id"] for p in parents if p["selected_child_request_id"]}
-
+    selected_child_ids = {p["selected_child_request_id"] for p in parents if p.get("selected_child_request_id")}
     # 3) keep only executed + selected
     eligible_child_ids = [row["id"] for row in executed if row["id"] in selected_child_ids]
     if not eligible_child_ids:
-        return {"time_ms": 0, "cost_usd": 0.0, "optimizations": 0}
+        return {"time_ms": 0, "cost_usd": 0.0, "optimizations": 0, "quality_lift_pct": 0.0}
 
-    # 4) sum from the same source your table uses
+    # 4) sum cost/time from savings table
     rows = (supabase.table("request_estimate_savings")
-        .select("time_saved_ms,cost_saved_usd,child_id")
+        .select("parent_id, child_id, time_saved_ms, cost_saved_usd")
         .in_("child_id", eligible_child_ids)
         .execute()
     ).data or []
 
     time_ms = sum(int(r.get("time_saved_ms") or 0) for r in rows)
-    # Supabase NUMERIC may come as str; coerce then round to 2 decimals at the end
-    cost_usd = sum(float(r.get("cost_saved_usd") or 0) for r in rows)
+    cost_usd = float(sum((r.get("cost_saved_usd") or 0) for r in rows))
 
-    return {"time_ms": time_ms, "cost_usd": round(cost_usd, 2), "optimizations": len(eligible_child_ids)}
+    # 5) compute average quality lift across the eligible pairs
+    p_ids = list({r["parent_id"] for r in rows})
+    c_ids = list({r["child_id"] for r in rows})
+
+    p_comp_rows = (supabase.table("requests")
+        .select("id,predicted_complexity")
+        .in_("id", p_ids).execute().data) or []
+    c_comp_rows = (supabase.table("requests")
+        .select("id,predicted_complexity")
+        .in_("id", c_ids).execute().data) or []
+
+    p_comp = {x["id"]: x.get("predicted_complexity") for x in p_comp_rows}
+    c_comp = {x["id"]: x.get("predicted_complexity") for x in c_comp_rows}
+
+    lifts = []
+    for r in rows:
+        pc = p_comp.get(r["parent_id"])
+        cc = c_comp.get(r["child_id"])
+        if pc is not None and cc is not None:
+            lifts.append(max(0.0, (float(pc) - float(cc)) * 100.0))
+
+    avg_lift = round(sum(lifts) / len(lifts), 2) if lifts else 0.0
+
+    return {
+        "time_ms": time_ms,
+        "cost_usd": round(cost_usd, 4),
+        "optimizations": len(eligible_child_ids),
+        "quality_lift_pct": avg_lift,
+    }
 
 @router.get("/metrics")
 def metrics(supabase: Client = Depends(get_supabase)):
@@ -346,7 +372,7 @@ async def get_request_status(
             "id,user_id,prompt,"
             "predicted_latency,predicted_tokens,predicted_complexity,"
             "executed_at,suggestions,status,priority,request_note,"
-            "selected_child_request_id,"   # ✅ include this
+            "selected_child_request_id,"   # include current selection
             "updated_at,created_at"
         )
         .eq("id", request_id)
@@ -359,24 +385,32 @@ async def get_request_status(
 
     row = res.data
 
-    # 2) If it's a parent with a selected child, look up savings
-    if row.get("selected_child_request_id"):
+    # 2) Attach savings ONLY if the current selection matches a savings row
+    cur_sel = row.get("selected_child_request_id")
+    if cur_sel:
         sv = (
             supabase.table("request_estimate_savings")
             .select("parent_id, child_id, time_saved_ms, cost_saved_usd")
             .eq("parent_id", row["id"])
+            .eq("child_id", cur_sel)  # require match with current selection
             .single()
             .execute()
             .data
         )
         if sv:
-            # Attach to the response
-            row["time_saved_ms"] = sv["time_saved_ms"]
-            # Cast numeric → float if Supabase returns it as string
+            row["time_saved_ms"]  = sv["time_saved_ms"]
             row["cost_saved_usd"] = float(sv["cost_saved_usd"])
-            row["selected_child_request_id"] = sv["child_id"]
+        else:
+            # No matching savings for the current selection
+            row.pop("time_saved_ms", None)
+            row.pop("cost_saved_usd", None)
+    else:
+        # No selection → no savings in the response
+        row.pop("time_saved_ms", None)
+        row.pop("cost_saved_usd", None)
 
     return row
+
 
 @router.get("/requests", tags=["Requests"])
 async def list_requests(
@@ -424,9 +458,12 @@ async def list_requests(
 
     items = res.data or []
 
-    # Attach estimated savings for parents that have them
+    # Attach estimated savings only when the parent's CURRENT selection matches
     ids = [it["id"] for it in items]
     if ids:
+        # collect current selection per parent
+        current_sel = {it["id"]: it.get("selected_child_request_id") for it in items}
+
         sv = (
             supabase.table("request_estimate_savings")
             .select("parent_id, child_id, time_saved_ms, cost_saved_usd")
@@ -434,16 +471,24 @@ async def list_requests(
             .execute()
             .data
         ) or []
-        by_parent = {row["parent_id"]: row for row in sv}
-        for it in items:
-            s = by_parent.get(it["id"])
-            if s:
-                it["selected_child_request_id"] = s["child_id"]
-                it["time_saved_ms"] = s["time_saved_ms"]
-                # Supabase can return numeric as string; coerce to float
-                it["cost_saved_usd"] = float(s["cost_saved_usd"])
 
-    # ✅ add a boolean your FE can use for quick styling
+        # index by (parent_id, child_id)
+        by_key = {(r["parent_id"], r["child_id"]): r for r in sv}
+
+        for it in items:
+            pid = it["id"]
+            cid = current_sel.get(pid)
+            s = by_key.get((pid, cid)) if cid else None
+
+            if s:
+                it["time_saved_ms"]  = s["time_saved_ms"]
+                it["cost_saved_usd"] = float(s["cost_saved_usd"])
+            else:
+                # ensure no phantom savings leak into the FE
+                it.pop("time_saved_ms", None)
+                it.pop("cost_saved_usd", None)
+
+    # boolean flag your FE uses for styling
     for it in items:
         it["has_selected_child"] = bool(it.get("selected_child_request_id"))
 
