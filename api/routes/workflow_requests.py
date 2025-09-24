@@ -21,21 +21,23 @@ from services.request_handler import require_known_user_by_email
 
 router = APIRouter()
 
-def _sum_savings_since(supabase: Client, since: datetime):
-    # 1) children executed in window
-    executed = (supabase.table("requests")
-        .select("id,parent_request_id,executed_at")
-        .not_.is_("executed_at", "null")
-        .gte("executed_at", since.isoformat())
-        .execute()
-    ).data or []
+# 1) allow optional client_id filter
+def _sum_savings_since(supabase: Client, since: datetime, client_id: Optional[str] = None):
+    # children executed in window (optionally tenant-scoped)
+    q = (supabase.table("requests")
+         .select("id,parent_request_id,executed_at")
+         .not_.is_("executed_at", "null")
+         .gte("executed_at", since.isoformat()))
+    if client_id:
+        q = q.eq("client_id", client_id)
+    executed = (q.execute().data) or []
 
     if not executed:
         return {"time_ms": 0, "cost_usd": 0.0, "optimizations": 0, "quality_lift_pct": 0.0}
 
     parent_ids = list({row["parent_request_id"] for row in executed if row.get("parent_request_id")})
 
-    # 2) parents’ selected child
+    # parents for those children (tenant-scoping here is optional because children are already scoped)
     parents = (supabase.table("requests")
         .select("id,selected_child_request_id")
         .in_("id", parent_ids)
@@ -43,12 +45,10 @@ def _sum_savings_since(supabase: Client, since: datetime):
     ).data or []
 
     selected_child_ids = {p["selected_child_request_id"] for p in parents if p.get("selected_child_request_id")}
-    # 3) keep only executed + selected
     eligible_child_ids = [row["id"] for row in executed if row["id"] in selected_child_ids]
     if not eligible_child_ids:
         return {"time_ms": 0, "cost_usd": 0.0, "optimizations": 0, "quality_lift_pct": 0.0}
 
-    # 4) sum cost/time from savings table
     rows = (supabase.table("request_estimate_savings")
         .select("parent_id, child_id, time_saved_ms, cost_saved_usd")
         .in_("child_id", eligible_child_ids)
@@ -58,48 +58,54 @@ def _sum_savings_since(supabase: Client, since: datetime):
     time_ms = sum(int(r.get("time_saved_ms") or 0) for r in rows)
     cost_usd = sum(float(r.get("cost_saved_usd") or 0) for r in rows)
 
-    # 5) compute average quality lift across the eligible pairs
+    # quality lift (complexity delta × 100, clamped at 0)
     p_ids = list({r["parent_id"] for r in rows})
     c_ids = list({r["child_id"] for r in rows})
-
-    p_comp_rows = (supabase.table("requests")
-        .select("id,predicted_complexity")
-        .in_("id", p_ids).execute().data) or []
-    c_comp_rows = (supabase.table("requests")
-        .select("id,predicted_complexity")
-        .in_("id", c_ids).execute().data) or []
-
+    p_comp_rows = (supabase.table("requests").select("id,predicted_complexity").in_("id", p_ids).execute().data) or []
+    c_comp_rows = (supabase.table("requests").select("id,predicted_complexity").in_("id", c_ids).execute().data) or []
     p_comp = {x["id"]: x.get("predicted_complexity") for x in p_comp_rows}
     c_comp = {x["id"]: x.get("predicted_complexity") for x in c_comp_rows}
 
     lifts = []
     for r in rows:
-        pc = p_comp.get(r["parent_id"])
-        cc = c_comp.get(r["child_id"])
+        pc, cc = p_comp.get(r["parent_id"]), c_comp.get(r["child_id"])
         if pc is not None and cc is not None:
             lifts.append(max(0.0, (float(pc) - float(cc)) * 100.0))
-
     avg_lift = round(sum(lifts) / len(lifts), 2) if lifts else 0.0
 
-    return {
-        "time_ms": time_ms,
-        "cost_usd": round(cost_usd, 4),
-        "optimizations": len(eligible_child_ids),
-        "quality_lift_pct": avg_lift,
-    }
+    return {"time_ms": time_ms, "cost_usd": round(cost_usd, 4), "optimizations": len(eligible_child_ids), "quality_lift_pct": avg_lift}
+
+def _resolve_client_id_local(supabase: Client, ident, current_user) -> str:
+    # API-key user wins if it has a client_id
+    if current_user and isinstance(current_user, dict) and current_user.get("client_id"):
+        return current_user["client_id"]
+
+    # Supabase JWT identity by email
+    email = getattr(ident, "email", None) if ident else None
+    if email:
+        res = supabase.table("users").select("client_id").ilike("email", email).limit(1).execute()
+        rows = res.data or []
+        if rows and rows[0].get("client_id"):
+            return rows[0]["client_id"]
+
+    raise HTTPException(status_code=401, detail="Missing identity or client")
 
 @router.get("/metrics")
-def metrics(supabase: Client = Depends(get_supabase)):
+def metrics(
+    supabase: Client = Depends(get_supabase),
+    ident = Depends(maybe_get_identity),
+    current_user = Depends(get_current_user),
+):
+    client_id = _resolve_client_id_local(supabase, ident, current_user)
     now = datetime.now(timezone.utc)
-    m7   = _sum_savings_since(supabase, now - timedelta(days=7))
-    m30  = _sum_savings_since(supabase, now - timedelta(days=30))
-    mytd = _sum_savings_since(supabase, datetime(now.year, 1, 1, tzinfo=timezone.utc))
+    m7   = _sum_savings_since(supabase, now - timedelta(days=7),  client_id)
+    m30  = _sum_savings_since(supabase, now - timedelta(days=30), client_id)
+    mytd = _sum_savings_since(supabase, datetime(now.year, 1, 1, tzinfo=timezone.utc), client_id)
 
-    # Return both key styles; your FE already accepts either
     return {
-        "7d":  m7,            "since_7d":  m7,
-        "30d": m30,           "since_30d": m30,
-        "ytd": mytd,          "since_ytd": mytd,
+        "7d":  m7,  "since_7d":  m7,
+        "30d": m30, "since_30d": m30,
+        "ytd": mytd,"since_ytd": mytd,
     }
 
 def _utcnow() -> datetime:
@@ -426,35 +432,20 @@ async def list_requests(
     # NEW: viewer identity (for scoping)
     ident = Depends(maybe_get_identity),
     current_user = Depends(get_current_user),
-):
+):  
+    client_id = _resolve_client_id_local(supabase, ident, current_user)
     sel = (
         supabase.table("requests")
         .select(
             "id,user_id,prompt,priority,status,"
             "predicted_latency,predicted_tokens,predicted_complexity,"
             "executed_at,suggestions,updated_at,created_at,"
-            "selected_child_request_id,parent_request_id,client_id",  # include client_id
+            "selected_child_request_id,parent_request_id",
             count="exact"
         )
-    ).is_("parent_request_id", "null")
-
-    # 🔒 Multi-tenant default scope: restrict to viewer's client_id when available
-    viewer_client_id = None
-    if current_user and current_user.get("client_id"):
-        viewer_client_id = current_user["client_id"]
-    elif ident and getattr(ident, "email", None):
-        u = (
-            supabase.table("users")
-            .select("client_id")
-            .ilike("email", ident.email)
-            .single()
-            .execute()
-            .data
-        )
-        viewer_client_id = (u or {}).get("client_id")
-
-    if viewer_client_id:
-        sel = sel.eq("client_id", viewer_client_id)
+        .eq("client_id", client_id)        # <<--- important tenant scope
+        .is_("parent_request_id", "null")  # parents only
+    )
 
     # Optional additional filters
     if user_id_like:
