@@ -75,19 +75,33 @@ def _sum_savings_since(supabase: Client, since: datetime, client_id: Optional[st
 
     return {"time_ms": time_ms, "cost_usd": round(cost_usd, 4), "optimizations": len(eligible_child_ids), "quality_lift_pct": avg_lift}
 
-def _resolve_client_id_local(supabase: Client, ident, current_user) -> str:
-    # API-key user wins if it has a client_id
-    if current_user and isinstance(current_user, dict) and current_user.get("client_id"):
+# helper
+def _resolve_client_id_local(
+    supabase: Client,
+    ident,
+    current_user,
+    *,
+    required: bool = False,
+) -> Optional[str]:
+    # 1) API-key user wins
+    if isinstance(current_user, dict) and current_user.get("client_id"):
         return current_user["client_id"]
 
-    # Supabase JWT identity by email
+    # 2) Supabase JWT email → users.client_id
     email = getattr(ident, "email", None) if ident else None
     if email:
-        res = supabase.table("users").select("client_id").ilike("email", email).limit(1).execute()
-        rows = res.data or []
-        if rows and rows[0].get("client_id"):
-            return rows[0]["client_id"]
+        res = (supabase.table("users")
+               .select("client_id")
+               .ilike("email", email)
+               .limit(1)
+               .execute())
+        row = (res.data or [None])[0] or {}
+        if row.get("client_id"):
+            return row["client_id"]
 
+    # 3) Reads: allow fallback; Writes: enforce
+    if not required:
+        return None
     raise HTTPException(status_code=401, detail="Missing identity or client")
 
 @router.get("/metrics")
@@ -96,17 +110,12 @@ def metrics(
     ident = Depends(maybe_get_identity),
     current_user = Depends(get_current_user),
 ):
-    client_id = _resolve_client_id_local(supabase, ident, current_user)
+    client_id = _resolve_client_id_local(supabase, ident, current_user, required=False)  # <- soft
     now = datetime.now(timezone.utc)
     m7   = _sum_savings_since(supabase, now - timedelta(days=7),  client_id)
     m30  = _sum_savings_since(supabase, now - timedelta(days=30), client_id)
     mytd = _sum_savings_since(supabase, datetime(now.year, 1, 1, tzinfo=timezone.utc), client_id)
-
-    return {
-        "7d":  m7,  "since_7d":  m7,
-        "30d": m30, "since_30d": m30,
-        "ytd": mytd,"since_ytd": mytd,
-    }
+    return {"7d": m7, "since_7d": m7, "30d": m30, "since_30d": m30, "ytd": mytd, "since_ytd": mytd}
 
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
@@ -420,64 +429,58 @@ async def get_request_status(
 @router.get("/requests", tags=["Requests"])
 async def list_requests(
     supabase: Client = Depends(get_supabase),
-    # filters
     user_id_like: Optional[str] = Query(None),
     q: Optional[str] = Query(None),
-    # sorting
     sort_by: Optional[str] = Query("created_at"),
     sort_dir: Optional[str] = Query("desc"),
-    # pagination
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=200),
-    # NEW: viewer identity (for scoping)
     ident = Depends(maybe_get_identity),
     current_user = Depends(get_current_user),
-):  
-    client_id = _resolve_client_id_local(supabase, ident, current_user)
+):
+    client_id = _resolve_client_id_local(supabase, ident, current_user, required=False)  # <- soft
+
     sel = (
         supabase.table("requests")
         .select(
-            "id,user_id,prompt,priority,status,"
+            "id,user_id,prompt,priority,status,optimize_for,"
             "predicted_latency,predicted_tokens,predicted_complexity,"
             "executed_at,suggestions,updated_at,created_at,"
             "selected_child_request_id,parent_request_id",
-            count="exact"
+            count="exact",
         )
-        .eq("client_id", client_id)        # <<--- important tenant scope
         .is_("parent_request_id", "null")  # parents only
     )
 
-    # Optional additional filters
+    if client_id:                         # <- only scope when we have it
+        sel = sel.eq("client_id", client_id)
+
     if user_id_like:
         sel = sel.ilike("user_id", f"%{user_id_like}%")
     if q:
         sel = sel.ilike("prompt", f"%{q}%")
 
-    # ordering, pagination as you had...
     sort_col = sort_by if sort_by in {
         "created_at","updated_at","predicted_latency","predicted_tokens","predicted_complexity","priority","status"
     } else "created_at"
     sel = sel.order(sort_col, desc=(sort_dir != "asc"))
     start, end = (page - 1) * page_size, (page * page_size) - 1
     res = sel.range(start, end).execute()
-
+    print("list_requests: resolved_client_id=", client_id, "total=", res.count, "returned=", len(res.data or []))
     items = res.data or []
 
-    # Attach savings only when current selection matches (kept as in your latest)
+    # Attach savings only if current selection matches
     ids = [it["id"] for it in items]
     if ids:
         current_sel = {it["id"]: it.get("selected_child_request_id") for it in items}
-        sv = (
-            supabase.table("request_estimate_savings")
-            .select("parent_id, child_id, time_saved_ms, cost_saved_usd")
-            .in_("parent_id", ids)
-            .execute()
-            .data
-        ) or []
+        sv = (supabase.table("request_estimate_savings")
+              .select("parent_id, child_id, time_saved_ms, cost_saved_usd")
+              .in_("parent_id", ids)
+              .execute()
+              .data) or []
         by_key = {(r["parent_id"], r["child_id"]): r for r in sv}
         for it in items:
-            pid, cid = it["id"], current_sel.get(it["id"])
-            s = by_key.get((pid, cid)) if cid else None
+            s = by_key.get((it["id"], current_sel.get(it["id"]))) if current_sel.get(it["id"]) else None
             if s:
                 it["time_saved_ms"]  = s["time_saved_ms"]
                 it["cost_saved_usd"] = float(s["cost_saved_usd"])
